@@ -1,0 +1,7 @@
+guide_docs/
+phase_test/
+.venv/
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
