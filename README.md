@@ -21,7 +21,7 @@
 - Immutable list of sub-task description and pass criterions (to avoid worker agent bypassing the failing test cases).
 - Worker agent updates "status" from `false` to `true` once all defined test cases pass.
 
-4. **Execution**:
+### Execution:
 - Execute phase-by-phase with resumable sessions.
 - Update sub-task status only when checks pass.
 - Trigger intervention when execution is blocked.
