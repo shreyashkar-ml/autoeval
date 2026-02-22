@@ -5,3 +5,4 @@ phase_test/
 __pycache__/
 *.pyc
 .pytest_cache/
+.autoeval/
