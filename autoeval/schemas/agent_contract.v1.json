@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "autoeval.agent_contract.v1",
+  "title": "TaskEnvelope",
+  "type": "object",
+  "required": [
+    "contract_version",
+    "task_id",
+    "repo_snapshot_id",
+    "goal",
+    "context",
+    "allowed_actions",
+    "success_criteria"
+  ],
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "repo_snapshot_id": {
+      "type": "string"
+    },
+    "goal": {
+      "type": "string"
+    },
+    "context": {
+      "type": "object"
+    },
+    "allowed_actions": {
+      "type": "array"
+    },
+    "success_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provider_capabilities": {
+      "type": "object"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

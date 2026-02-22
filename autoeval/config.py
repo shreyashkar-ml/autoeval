@@ -39,7 +39,7 @@ class RepoPaths:
 
     @property
     def rpi_dir(self) -> Path:
-        return self.autoeval_dir / "rpi"
+        return self.autoeval_dir / "instructions"
 
     @property
     def runs_dir(self) -> Path:
@@ -108,6 +108,7 @@ def ensure_repo_layout(paths: RepoPaths) -> None:
             paths.state_file,
             {
                 "schema_version": SCHEMA_VERSION,
+                "contract_version": "1.0",
                 "provider": "codex",
                 "last_run_id": None,
                 "created_at": utc_now_iso(),
@@ -141,5 +142,6 @@ def touch_state(paths: RepoPaths, **updates: Any) -> None:
     state = read_json(paths.state_file, {"schema_version": SCHEMA_VERSION})
     state.update(updates)
     state["schema_version"] = SCHEMA_VERSION
+    state["contract_version"] = "1.0"
     state["updated_at"] = utc_now_iso()
     write_json(paths.state_file, state)

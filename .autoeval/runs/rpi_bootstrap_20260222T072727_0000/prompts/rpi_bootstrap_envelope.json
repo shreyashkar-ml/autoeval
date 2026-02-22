@@ -1,0 +1,105 @@
+{
+  "allowed_actions": [
+    {
+      "format": null,
+      "max_bytes": 200000,
+      "selectors": [],
+      "type": "read_file"
+    },
+    {
+      "format": null,
+      "max_bytes": null,
+      "selectors": [],
+      "type": "write_file"
+    },
+    {
+      "format": "unified_diff",
+      "max_bytes": null,
+      "selectors": [],
+      "type": "propose_patch"
+    },
+    {
+      "format": null,
+      "max_bytes": null,
+      "selectors": [
+        "build",
+        "test",
+        "cmd"
+      ],
+      "type": "run"
+    },
+    {
+      "format": null,
+      "max_bytes": null,
+      "selectors": [],
+      "type": "mcp_call"
+    },
+    {
+      "format": null,
+      "max_bytes": null,
+      "selectors": [
+        "slack"
+      ],
+      "type": "notify"
+    },
+    {
+      "format": null,
+      "max_bytes": null,
+      "selectors": [
+        "commit",
+        "create_pr",
+        "push"
+      ],
+      "type": "github"
+    }
+  ],
+  "context": {
+    "constraints": {
+      "allow_repo_edits": true,
+      "max_runtime_sec": 900,
+      "no_network": true,
+      "sandbox_mode": "workspace-write"
+    },
+    "metadata": {},
+    "recent_runs": [
+      "artifact://rpi_bootstrap_20260222T072727_0000/events.jsonl"
+    ],
+    "repo_map": "artifact://repo_map.json",
+    "symbol_index": "artifact://symbols.parquet"
+  },
+  "contract_version": "1.0",
+  "goal": "Bootstrap RPI artifacts for task: update docs inside guide_docs/ based on current state of repository",
+  "metadata": {
+    "completion_signal": "PROJECT_COMPLETE:",
+    "feature_count": 4,
+    "feature_list_path": ".autoeval/instructions/feature_list.json",
+    "orchestration_pattern": "orchestrator->coding->github->slack",
+    "repo_root": "/home/shrey/autoeval",
+    "requested_task": "update docs inside guide_docs/ based on current state of repository",
+    "rpi_bootstrap_pending": true,
+    "rpi_instructions": {
+      "feature_list": "<!-- template_id: rpi_feature_list -->\n<!-- template_version: 2.2.0 -->\n\n# Feature List Artifact Instruction\n\nPurpose:\n- Define the smallest granular executable sub-tasks for implementation.\n- Track objective pass criteria and completion status per sub-task.\n- Represent phase-to-sub-task mapping where each plan phase can contain multiple sub-tasks.\n\n## Rules\n1. Each `sub_task` must contain:\n   - `id`\n   - `phase_id` (stable link to a phase in `plan.md`)\n   - `phase`\n   - `sub_task_description` (smallest independently testable unit)\n   - `criteria` (array of objective pass checks)\n   - `status` (boolean)\n2. Order `sub_tasks` by phase order in `plan.md`, then by execution order within each phase.\n3. Agents may only mutate `status`. All other fields are immutable.\n4. Completion is valid only when evidence satisfies every criterion.\n5. Use rebaseline workflow for criteria changes; do not edit in place.\n6. Do not store planning prose in this artifact.\n7. Criteria must be objectively verifiable (tests, commands, outputs, or concrete observable behavior).\n8. Every `sub_task` must map cleanly to a specific phase boundary from `plan.md`.\n\n## JSON Shape\n```json\n{\n  \"schema_version\": 1,\n    \"template\": {\n      \"id\": \"rpi_feature_list\",\n      \"version\": \"2.2.0\"\n    },\n  \"generated_at\": \"ISO-8601\",\n  \"sub_tasks\": [\n    {\n      \"id\": \"phase_1_subtask_1\",\n      \"phase_id\": \"phase_1\",\n      \"phase\": \"Phase 1 - <name>\",\n      \"sub_task_description\": \"<smallest testable implementation unit>\",\n      \"criteria\": [\n        \"<objective pass check 1>\",\n        \"<objective pass check 2>\"\n      ],\n      \"status\": false\n    }\n  ]\n}\n```\n",
+      "plan": "<!-- template_id: rpi_plan -->\n<!-- template_version: 2.2.0 -->\n\n# Planning Artifact Instruction\n\nPurpose:\n- Decompose the current task into phase-level execution strategy.\n- Use phases separated by core logic/component boundaries.\n- Keep this artifact at phase granularity, not sub-task granularity.\n\n## Request Context\n- task: update docs inside guide_docs/ based on current state of repository\n- constraints: sandboxed local execution\n- acceptance_targets: all requested feature criteria satisfied in target repository\n- provider_capabilities: selected provider adapter capabilities via runtime contract\n\n## Required Sections\n1. Phase breakdown with explicit boundaries (what is in scope/out of scope per phase).\n2. Phase objective, dependency assumptions, and expected output per phase.\n3. Testing methodology for each phase (unit/integration/e2e/manual checks).\n4. Strict constraints for each phase (allowed tools, runtime boundaries, no-go edits, safety constraints).\n5. Planned file/script touchpoints for each phase (exact paths, purpose of edits, why phase owns them).\n6. Skeletal implementation snippets for non-trivial edits (pseudocode/diff-style outline, not full implementation).\n7. Relevant code references or excerpts that justify the planned approach.\n8. Phase exit criteria and blocker handling.\n9. Risk/rollback notes and handoff instructions for context rollover.\n\n## Execution Contract\n- The orchestrator decides completion based on evidence, not agent claims.\n- Do not put smallest granular sub-task definitions in this file.\n- Granular implementation units and pass criteria belong only in `feature_list.json`.\n- Every phase in plan should map to one or more `sub_tasks` in `feature_list.json`.\n\n## Phase Template\n### Phase <N> - <name>\n- Objective:\n- In scope:\n- Out of scope:\n- Dependencies/assumptions:\n- Strict constraints:\n- Planned file/script touchpoints:\n- Skeletal change snippet(s):\n- Relevant code references:\n- Validation:\n- Exit criteria:\n",
+      "research": "<!-- template_id: rpi_research -->\n<!-- template_version: 2.2.0 -->\n\n# Research Artifact Instruction\n\nPurpose:\n- Build repository familiarity context for a target repository when `autoeval` is initialized there for the first time.\n- This artifact is repository-level and not task-specific.\n- It should remain reusable across future tasks in the same target repository.\n\n## Scope Rules\n1. Cover the whole repository architecture and behavior baseline, not just a single request.\n2. Keep this artifact factual and descriptive; do not include phase execution status.\n3. After implementation runs, update this file surgically so it reflects current functionality.\n4. Preserve historical context; do not rewrite the entire document each run unless structure is obsolete.\n5. Build structure sections from direct repository inspection by the worker agent; do not rely on pre-generated tree snapshots.\n6. While preparing structure highlights, follow the repository `.gitignore` rules; include ignored paths only when they are directly relevant to the request.\n\n## Required Sections\n1. Repository tree/map with one-line descriptions for important nodes and modules.\n2. Project directory and script structures with a one-line purpose/functionality note for each highlighted entry.\n3. Core functionality and module responsibilities.\n4. End-to-end flow traces for key user/system paths.\n5. Integration methodology and external dependencies (APIs, services, data stores, queues).\n6. Deployment/runtime/testing setup (entry points, commands, tooling assumptions).\n7. Known gaps, risks, and unknowns with evidence needed to resolve them.\n\n## Update Rules\n- Keep links/file references actionable and current.\n- If behavior changes, update only affected sections with concrete diffs in understanding.\n- Do not add per-phase checklists or granular sub-task completion states here.\n"
+    },
+    "workflow_model": "research-plan-implementation"
+  },
+  "provider_capabilities": {
+    "action_planning": true,
+    "reference_style_orchestration": true,
+    "structured_output": true,
+    "subagents": true
+  },
+  "repo_snapshot_id": "rpi_bootstrap_20260222T072727_0000",
+  "success_criteria": [
+    "Research artifact captures system architecture, dependencies, and request trace",
+    "Known risks and unknowns are listed with concrete follow-up questions",
+    "Plan defines ordered phases and explicit success criteria per phase",
+    "Plan includes test strategy and rollback/mitigation notes",
+    "Changes are mapped to planned subtasks and tracked with evidence",
+    "Any required tooling/integration setup is documented in-line",
+    "Automated and/or manual validations are attached to each implemented subtask",
+    "Final summary includes remaining gaps and next actions"
+  ],
+  "task_id": "rpi_bootstrap_20260222T072727_0000:session:0"
+}

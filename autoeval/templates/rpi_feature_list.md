@@ -1,5 +1,50 @@
-# Template note
-This template identifier exists so generated `feature_list.json` can record template id/version metadata.
+<!-- template_id: rpi_feature_list -->
+<!-- template_version: 2.2.0 -->
 
-- template_id: rpi_feature_list
-- template_version: 1.0.0
+# Feature List Artifact Instruction
+
+Purpose:
+- Define the smallest granular executable sub-tasks for implementation.
+- Track objective pass criteria and completion status per sub-task.
+- Represent phase-to-sub-task mapping where each plan phase can contain multiple sub-tasks.
+
+## Rules
+1. Each `sub_task` must contain:
+   - `id`
+   - `phase_id` (stable link to a phase in `plan.md`)
+   - `phase`
+   - `sub_task_description` (smallest independently testable unit)
+   - `criteria` (array of objective pass checks)
+   - `status` (boolean)
+2. Order `sub_tasks` by phase order in `plan.md`, then by execution order within each phase.
+3. Agents may only mutate `status`. All other fields are immutable.
+4. Completion is valid only when evidence satisfies every criterion.
+5. Use rebaseline workflow for criteria changes; do not edit in place.
+6. Do not store planning prose in this artifact.
+7. Criteria must be objectively verifiable (tests, commands, outputs, or concrete observable behavior).
+8. Every `sub_task` must map cleanly to a specific phase boundary from `plan.md`.
+
+## JSON Shape
+```json
+{
+  "schema_version": 1,
+    "template": {
+      "id": "rpi_feature_list",
+      "version": "2.2.0"
+    },
+  "generated_at": "ISO-8601",
+  "sub_tasks": [
+    {
+      "id": "phase_1_subtask_1",
+      "phase_id": "phase_1",
+      "phase": "Phase 1 - <name>",
+      "sub_task_description": "<smallest testable implementation unit>",
+      "criteria": [
+        "<objective pass check 1>",
+        "<objective pass check 2>"
+      ],
+      "status": false
+    }
+  ]
+}
+```

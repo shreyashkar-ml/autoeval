@@ -136,6 +136,13 @@ def _append_event(paths: RepoPaths, run_id: str, event: dict[str, Any]) -> None:
         handle.write("\n")
 
 
+def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True))
+        handle.write("\n")
+
+
 def add_profile(
     paths: RepoPaths,
     scope: str,
@@ -371,6 +378,23 @@ def resolve_runtime_profiles(
     return resolved
 
 
+def map_tool_selector_to_profile(
+    paths: RepoPaths,
+    selector: str | None = None,
+    namespace: str | None = None,
+) -> dict[str, Any] | None:
+    runtime = resolve_runtime_profiles(paths)
+    if namespace:
+        for name, profile in runtime.items():
+            if profile.get("tool_namespace") == namespace or name == namespace:
+                return profile
+    if selector:
+        for name, profile in runtime.items():
+            if name == selector or profile.get("tool_namespace") == selector:
+                return profile
+    return None
+
+
 def run_browser_scenario(
     paths: RepoPaths,
     run_id: str,
@@ -422,3 +446,63 @@ def run_browser_scenario(
         "assertions": str(assertions_file),
         "passed": True,
     }
+
+
+def record_slack_notification(
+    paths: RepoPaths,
+    run_id: str,
+    channel: str,
+    message: str,
+    requested_by: str = "orchestrator",
+) -> dict[str, Any]:
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "run_id": run_id,
+        "channel": channel,
+        "message": message,
+        "requested_by": requested_by,
+        "created_at": utc_now_iso(),
+    }
+    jsonl_file = paths.runs_dir / run_id / "communications" / "slack_messages.jsonl"
+    _append_jsonl(jsonl_file, payload)
+    _append_event(
+        paths,
+        run_id,
+        {
+            "type": "slack_notification_sent",
+            "channel": channel,
+            "requested_by": requested_by,
+        },
+    )
+    return payload
+
+
+def record_github_operation(
+    paths: RepoPaths,
+    run_id: str,
+    operation: str,
+    summary: str,
+    requested_by: str = "orchestrator",
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "run_id": run_id,
+        "operation": operation,
+        "summary": summary,
+        "requested_by": requested_by,
+        "metadata": metadata or {},
+        "created_at": utc_now_iso(),
+    }
+    jsonl_file = paths.runs_dir / run_id / "vcs" / "github_operations.jsonl"
+    _append_jsonl(jsonl_file, payload)
+    _append_event(
+        paths,
+        run_id,
+        {
+            "type": "github_operation_recorded",
+            "operation": operation,
+            "requested_by": requested_by,
+        },
+    )
+    return payload

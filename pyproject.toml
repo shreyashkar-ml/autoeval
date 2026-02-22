@@ -26,6 +26,9 @@ build-backend = "setuptools.build_meta"
 where = ["."]
 include = ["autoeval*"]
 
+[tool.setuptools.package-data]
+autoeval = ["templates/*.md", "prompts/*.md", "prompts/*.txt", "schemas/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["phase_test/tests"]
 addopts = "-q"

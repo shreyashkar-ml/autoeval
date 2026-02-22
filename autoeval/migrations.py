@@ -18,6 +18,7 @@ def run_migrations(paths: RepoPaths) -> None:
         paths.state_file,
         {
             "schema_version": SCHEMA_VERSION,
+            "contract_version": "1.0",
             "provider": "codex",
             "last_run_id": None,
         },
