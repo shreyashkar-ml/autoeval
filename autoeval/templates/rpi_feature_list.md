@@ -4,20 +4,18 @@
 # Feature List Artifact Instruction
 
 Purpose:
-- Define the smallest granular executable sub-tasks for implementation.
-- Track objective pass criteria and completion status per sub-task.
+- Break down each phase as described in `plan.md` into multiple sub-tasks each with independently verifiable passing criteria for success.
 - Represent phase-to-sub-task mapping where each plan phase can contain multiple sub-tasks.
 
 ## Rules
 1. Each `sub_task` must contain:
    - `id`
    - `phase_id` (stable link to a phase in `plan.md`)
-   - `phase`
    - `sub_task_description` (smallest independently testable unit)
    - `criteria` (array of objective pass checks)
    - `status` (boolean)
 2. Order `sub_tasks` by phase order in `plan.md`, then by execution order within each phase.
-3. Agents may only mutate `status`. All other fields are immutable.
+3. Agents CAN only mutate `status`. All other fields are immutable.
 4. Completion is valid only when evidence satisfies every criterion.
 5. Use rebaseline workflow for criteria changes; do not edit in place.
 6. Do not store planning prose in this artifact.
@@ -37,7 +35,6 @@ Purpose:
     {
       "id": "phase_1_subtask_1",
       "phase_id": "phase_1",
-      "phase": "Phase 1 - <name>",
       "sub_task_description": "<smallest testable implementation unit>",
       "criteria": [
         "<objective pass check 1>",

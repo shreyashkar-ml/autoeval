@@ -65,12 +65,12 @@ def _codex_binary() -> str:
 
 
 def _codex_reasoning_effort() -> str | None:
-    effort = os.getenv("AUTOEVAL_CODEX_REASONING_EFFORT", "low").strip()
+    effort = os.getenv("AUTOEVAL_CODEX_REASONING_EFFORT", "medium").strip()
     return effort or None
 
 
 def _codex_model() -> str | None:
-    model = os.getenv("AUTOEVAL_CODEX_MODEL", "").strip()
+    model = os.getenv("AUTOEVAL_CODEX_MODEL", "gpt-5.3-codex").strip()
     return model or None
 
 
