@@ -12,6 +12,8 @@ dist/
 venv/
 .env
 node_modules/
+.next/
+public/
 dist/
 tests/
 technical_overview.md
