@@ -23,65 +23,47 @@
     </nav>
   </header>
 
-  <main>
-    <section class="hero shell">
+  <main class="column">
+    <section class="hero" id="install">
       <div class="eyebrow"><i></i> local-first · open source · agent native</div>
       <h1>Run the experiment.<br><em>Keep the evidence.</em></h1>
       <p>Reproducible experimentation infrastructure for coding agents. Compare variants, steer autoresearch, and decide from results—not vibes.</p>
-      <div class="hero-actions">
-        <a class="primary" href="#install">Install Autoexp</a>
-        <a href="https://github.com/shreyashkar-ml/autoexp">View on GitHub →</a>
-      </div>
       <div class="trust"><span>✓ runs locally</span><span>✓ no account</span><span>✓ immutable runs</span><span>✓ MIT licensed</span></div>
-    </section>
-
-    <section id="install" class="install-section shell">
-      <div class="section-title">
-        <span class="kicker">Install</span>
-        <h2>One runtime. Your agent.</h2>
-        <p>Install once, then choose the agent you use.</p>
-      </div>
-
-      <div class="installer">
-        <div class="runtime">
-          <span><b>1</b> Install the runtime</span>
-          <div class="command">
-            <span>$</span>
-            <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
-            <button class="copy" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
-          </div>
+      <div class="hero-installer">
+        <span class="kicker">Install + connect</span>
+        <div class="agent-tabs" role="tablist" aria-label="Coding agent">
+          <button class="agent-tab active" data-agent="codex" role="tab" aria-selected="true">
+            <img src="/agents/codex.png" alt=""><span>Codex</span>
+          </button>
+          <button class="agent-tab" data-agent="claude" role="tab" aria-selected="false">
+            <img src="/agents/claude.svg" alt=""><span>Claude Code</span>
+          </button>
+          <button class="agent-tab" data-agent="opencode" role="tab" aria-selected="false">
+            <img src="/agents/opencode.svg" alt=""><span>OpenCode</span>
+          </button>
+          <button class="agent-tab" data-agent="pi" role="tab" aria-selected="false">
+            <img src="/agents/pi.svg" alt=""><span>Pi</span>
+          </button>
         </div>
-
-        <div class="agent-setup">
-          <span class="setup-label"><b>2</b> Connect your agent</span>
-          <div class="agent-tabs" role="tablist" aria-label="Coding agent">
-            <button class="agent-tab active" data-agent="codex" role="tab" aria-selected="true">
-              <img src="/agents/codex.png" alt=""><span>Codex</span>
-            </button>
-            <button class="agent-tab" data-agent="claude" role="tab" aria-selected="false">
-              <img src="/agents/claude.svg" alt=""><span>Claude Code</span>
-            </button>
-            <button class="agent-tab" data-agent="opencode" role="tab" aria-selected="false">
-              <img src="/agents/opencode.svg" alt=""><span>OpenCode</span>
-            </button>
-            <button class="agent-tab" data-agent="pi" role="tab" aria-selected="false">
-              <img src="/agents/pi.svg" alt=""><span>Pi</span>
-            </button>
+        <div class="command">
+          <span>$</span>
+          <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
+          <button class="copy" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
+        </div>
+        <div class="agent-panel" role="tabpanel" aria-live="polite">
+          <div>
+            <strong id="agent-name">Codex</strong>
+            <span id="agent-note">Add the Autoexp plugin, then restart Codex.</span>
           </div>
-          <div class="agent-panel" role="tabpanel" aria-live="polite">
-            <div>
-              <strong id="agent-name">Codex</strong>
-              <span id="agent-note">Add the Autoexp plugin, then restart Codex.</span>
-            </div>
-            <pre id="agent-command">codex plugin marketplace add shreyashkar-ml/autoexp
+          <pre id="agent-command">codex plugin marketplace add shreyashkar-ml/autoexp
 codex plugin add autoexp@autoexp</pre>
-            <button class="copy" id="agent-copy" data-copy="codex plugin marketplace add shreyashkar-ml/autoexp&#10;codex plugin add autoexp@autoexp">copy</button>
-          </div>
+          <button class="copy" id="agent-copy" data-copy="codex plugin marketplace add shreyashkar-ml/autoexp&#10;codex plugin add autoexp@autoexp">copy</button>
         </div>
+        <a class="github-link" href="https://github.com/shreyashkar-ml/autoexp">View on GitHub →</a>
       </div>
     </section>
 
-    <section id="product" class="product shell">
+    <section id="product" class="product">
       <div class="section-title compact-title">
         <span class="kicker">Two workflows</span>
         <h2>Experiment. Or optimize.</h2>
@@ -111,7 +93,7 @@ codex plugin add autoexp@autoexp</pre>
       </div>
     </section>
 
-    <section id="how" class="how shell">
+    <section id="how" class="how">
       <div class="section-title compact-title">
         <span class="kicker">How it works</span>
         <h2>Your agent proposes. Autoexp proves.</h2>
@@ -129,7 +111,7 @@ codex plugin add autoexp@autoexp</pre>
       </div>
     </section>
 
-    <section class="cta shell">
+    <section class="cta">
       <span class="kicker">Local autonomous experimentation</span>
       <h2>Give the next agent change a result.</h2>
       <div>
