@@ -1,8 +1,19 @@
 {
   "name": "autoexp-site",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "mkdir -p dist && cp index.html style.css install.sh assets/autoexp_demo.png assets/autoresearch_demo.png dist/",
-    "dev": "npm run build && python3 -m http.server 3000 --directory dist"
+    "build": "mkdir -p public && cp style.css install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && vinext build && mkdir -p dist/.openai && cp .openai/hosting.json dist/.openai/hosting.json",
+    "dev": "mkdir -p public && cp style.css install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && vinext dev"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-server-dom-webpack": "19.2.8",
+    "vinext": "1.0.0-beta.4",
+    "vite": "8.1.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-rsc": "0.5.30"
   }
 }

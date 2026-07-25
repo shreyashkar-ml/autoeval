@@ -13,6 +13,8 @@ venv/
 .env
 node_modules/
 .next/
+.vinext/
+next-env.d.ts
 public/
 dist/
 tests/
