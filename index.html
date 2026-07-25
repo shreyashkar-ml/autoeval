@@ -16,9 +16,9 @@
   <header class="nav shell">
     <a class="brand" href="#" aria-label="Autoexp home">auto<span>exp</span></a>
     <nav aria-label="Main navigation">
+      <a href="#product">Product</a>
       <a href="#how">How it works</a>
-      <a href="#features">Features</a>
-      <a href="#agents">Agents</a>
+      <a href="#install">Install</a>
       <a href="https://github.com/shreyashkar-ml/autoexp">GitHub ↗</a>
     </nav>
   </header>
@@ -27,112 +27,115 @@
     <section class="hero shell">
       <div class="eyebrow"><i></i> local-first · open source · agent native</div>
       <h1>Run the experiment.<br><em>Keep the evidence.</em></h1>
-      <p class="lead">Reproducible experimentation infrastructure for coding agents. Compare variants, steer autoresearch, and make decisions from results—not vibes.</p>
-      <div class="install">
-        <span class="prompt">$</span>
-        <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
-        <button class="copy" aria-label="Copy install command">copy</button>
-      </div>
-      <div class="hero-links">
-        <a class="primary" href="#agents">Install for your agent</a>
+      <p>Reproducible experimentation infrastructure for coding agents. Compare variants, steer autoresearch, and decide from results—not vibes.</p>
+      <div class="hero-actions">
+        <a class="primary" href="#install">Install Autoexp</a>
         <a href="https://github.com/shreyashkar-ml/autoexp">View on GitHub →</a>
       </div>
-      <div class="trust">
-        <span>✓ runs locally</span><span>✓ no account</span><span>✓ no runtime dependencies</span><span>✓ MIT licensed</span>
-      </div>
+      <div class="trust"><span>✓ runs locally</span><span>✓ no account</span><span>✓ immutable runs</span><span>✓ MIT licensed</span></div>
     </section>
 
-    <section class="product shell" aria-label="Autoexp dashboard preview">
-      <div class="window">
-        <div class="windowbar">
-          <span class="lights"><i></i><i></i><i></i></span>
-          <code>localhost:4318 · autoexp</code>
-          <span class="live"><i></i> experiment running</span>
+    <section id="install" class="install-section shell">
+      <div class="section-title">
+        <span class="kicker">Install</span>
+        <h2>One runtime. Your agent.</h2>
+        <p>Install once, then choose the agent you use.</p>
+      </div>
+
+      <div class="installer">
+        <div class="runtime">
+          <span><b>1</b> Install the runtime</span>
+          <div class="command">
+            <span>$</span>
+            <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
+            <button class="copy" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
+          </div>
         </div>
-        <img src="/autoexp_demo.png" alt="Autoexp dashboard showing experiment runs, evidence, milestones, and reports">
+
+        <div class="agent-setup">
+          <span class="setup-label"><b>2</b> Connect your agent</span>
+          <div class="agent-tabs" role="tablist" aria-label="Coding agent">
+            <button class="agent-tab active" data-agent="codex" role="tab" aria-selected="true">
+              <img src="/agents/codex.png" alt=""><span>Codex</span>
+            </button>
+            <button class="agent-tab" data-agent="claude" role="tab" aria-selected="false">
+              <img src="/agents/claude.svg" alt=""><span>Claude Code</span>
+            </button>
+            <button class="agent-tab" data-agent="opencode" role="tab" aria-selected="false">
+              <img src="/agents/opencode.svg" alt=""><span>OpenCode</span>
+            </button>
+            <button class="agent-tab" data-agent="pi" role="tab" aria-selected="false">
+              <img src="/agents/pi.svg" alt=""><span>Pi</span>
+            </button>
+          </div>
+          <div class="agent-panel" role="tabpanel" aria-live="polite">
+            <div>
+              <strong id="agent-name">Codex</strong>
+              <span id="agent-note">Add the Autoexp plugin, then restart Codex.</span>
+            </div>
+            <pre id="agent-command">codex plugin marketplace add shreyashkar-ml/autoexp
+codex plugin add autoexp@autoexp</pre>
+            <button class="copy" id="agent-copy" data-copy="codex plugin marketplace add shreyashkar-ml/autoexp&#10;codex plugin add autoexp@autoexp">copy</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section id="how" class="section shell">
-      <div class="section-head">
-        <span class="kicker">01 / workflow</span>
-        <h2>Your agent proposes.<br>Autoexp proves.</h2>
-        <p>One harness around the work your coding agent already does.</p>
+    <section id="product" class="product shell">
+      <div class="section-title compact-title">
+        <span class="kicker">Two workflows</span>
+        <h2>Experiment. Or optimize.</h2>
+        <p>Both preserve the complete trail from source change to decision.</p>
+      </div>
+      <div class="flows">
+        <article>
+          <div class="flow-head">
+            <span>Standard experimentation</span>
+            <code>compare variants</code>
+          </div>
+          <a class="shot" href="/autoexp_demo.png" target="_blank" aria-label="Open standard experimentation screenshot">
+            <img src="/autoexp_demo.png" alt="Autoexp standard experimentation dashboard">
+          </a>
+          <p>Compare focused variants, inspect sealed evidence, and turn the full run history into a recommendation.</p>
+        </article>
+        <article>
+          <div class="flow-head">
+            <span>Autoresearch</span>
+            <code>optimize a metric</code>
+          </div>
+          <a class="shot" href="/autoresearch_demo.png" target="_blank" aria-label="Open autoresearch screenshot">
+            <img src="/autoresearch_demo.png" alt="Autoexp autoresearch loop and attempt ledger">
+          </a>
+          <p>Freeze the evaluator, let the agent iterate, and keep or revert every scored attempt automatically.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="how" class="how shell">
+      <div class="section-title compact-title">
+        <span class="kicker">How it works</span>
+        <h2>Your agent proposes. Autoexp proves.</h2>
       </div>
       <div class="steps">
-        <article><b>01</b><h3>Define the boundary</h3><p>Set the objective, editable source, inputs, command, and evaluator.</p></article>
-        <article><b>02</b><h3>Run focused variants</h3><p>Your agent changes the repository and Autoexp executes each proposal reproducibly.</p></article>
-        <article><b>03</b><h3>Seal the result</h3><p>Source, outputs, logs, metrics, artifacts, and lineage become immutable evidence.</p></article>
-        <article><b>04</b><h3>Decide from evidence</h3><p>A metric or your review keeps, reverts, or redirects the next attempt.</p></article>
+        <article><b>01</b><h3>Define the boundary</h3><p>Choose the objective, editable source, inputs, command, and evaluator.</p></article>
+        <article><b>02</b><h3>Run and seal</h3><p>Each proposal runs reproducibly with source, logs, metrics, and artifacts preserved.</p></article>
+        <article><b>03</b><h3>Decide from evidence</h3><p>A metric or your browser review keeps, reverts, or redirects the next attempt.</p></article>
       </div>
-    </section>
-
-    <section id="features" class="section shell">
-      <div class="section-head">
-        <span class="kicker">02 / infrastructure</span>
-        <h2>The harness around<br>autonomous work.</h2>
-      </div>
-      <div class="feature-grid">
-        <article><span>01</span><h3>Reproducible runs</h3><p>Pin source, inputs, commands, environment, and outputs for every attempt.</p></article>
-        <article><span>02</span><h3>Immutable evidence</h3><p>Inspect artifacts, logs, reports, metrics, and diffs without losing the run that produced them.</p></article>
-        <article><span>03</span><h3>Human review</h3><p>Open a local review surface, annotate results, and send structured feedback straight back to the agent.</p></article>
-        <article><span>04</span><h3>Keep or revert</h3><p>Optimize a scalar objective with a frozen evaluator and an auditable autoresearch loop.</p></article>
-        <article><span>05</span><h3>Repository native</h3><p>Your worktree stays the editable source of truth. Autoexp supplies the harness around it.</p></article>
-        <article><span>06</span><h3>Local first</h3><p>The dashboard and experiment ledger run on your machine. No account or hosted control plane.</p></article>
-      </div>
-    </section>
-
-    <section class="split shell">
-      <div>
-        <span class="kicker">standard experiments</span>
-        <h2>Compare variants without losing the trail.</h2>
-        <p>Every run keeps its source snapshot, execution context, artifacts, reports, and diff. Review the full chain before choosing a winner.</p>
-        <code>autoexp run --agent --title "candidate"</code>
-      </div>
-      <div class="window compact">
-        <div class="windowbar"><code>experiment / evidence</code><span class="live done">✓ sealed</span></div>
-        <img src="/autoexp_demo.png" alt="Standard experiment view in Autoexp">
-      </div>
-    </section>
-
-    <section class="split reverse shell">
-      <div>
-        <span class="kicker">autoresearch</span>
-        <h2>Let the metric drive the loop.</h2>
-        <p>Freeze the evaluator, choose a direction, and let the agent iterate. Each attempt is scored, kept or reverted, and recorded.</p>
-        <code>autoexp research attempt "hypothesis"</code>
-      </div>
-      <div class="window compact">
-        <div class="windowbar"><code>autoresearch / attempt ledger</code><span class="live"><i></i> optimizing</span></div>
-        <img src="/autoresearch_demo.png" alt="Autoexp autoresearch loop and scored attempt ledger">
-      </div>
-    </section>
-
-    <section id="agents" class="section shell">
-      <div class="section-head">
-        <span class="kicker">03 / integrations</span>
-        <h2>Use the agent<br>you already use.</h2>
-        <p>One workflow across Codex, Claude Code, OpenCode, and Pi.</p>
-      </div>
-      <div class="agent-grid">
-        <article><div><span class="agent-dot"></span><h3>Codex</h3></div><code>$autoexp &lt;objective&gt;</code><pre>codex plugin marketplace add shreyashkar-ml/autoexp
-codex plugin add autoexp@autoexp</pre></article>
-        <article><div><span class="agent-dot"></span><h3>Claude Code</h3></div><code>/autoexp &lt;objective&gt;</code><pre>claude plugin marketplace add shreyashkar-ml/autoexp
-claude plugin install autoexp@autoexp</pre></article>
-        <article><div><span class="agent-dot"></span><h3>OpenCode</h3></div><code>/autoexp &lt;objective&gt;</code><pre>Installed automatically</pre></article>
-        <article><div><span class="agent-dot"></span><h3>Pi</h3></div><code>/autoexp &lt;objective&gt;</code><pre>Installed automatically</pre></article>
+      <div class="capabilities">
+        <span>immutable run evidence</span>
+        <span>local browser review</span>
+        <span>source snapshots + diffs</span>
+        <span>agent feedback loop</span>
       </div>
     </section>
 
     <section class="cta shell">
-      <span class="kicker">start experimenting</span>
-      <h2>Your next agent change<br>deserves a result.</h2>
-      <div class="install">
-        <span class="prompt">$</span>
-        <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
-        <button class="copy" aria-label="Copy install command">copy</button>
+      <span class="kicker">Local autonomous experimentation</span>
+      <h2>Give the next agent change a result.</h2>
+      <div>
+        <a class="primary" href="#install">Install Autoexp</a>
+        <a href="https://github.com/shreyashkar-ml/autoexp">Explore the repository →</a>
       </div>
-      <p>Linux and macOS · requires Git and uv</p>
     </section>
   </main>
 
@@ -143,11 +146,49 @@ claude plugin install autoexp@autoexp</pre></article>
   </footer>
 
   <script>
-    const command = "curl -fsSL https://autoexp.dev/install.sh | bash";
+    const agents = {
+      codex: {
+        name: "Codex",
+        note: "Add the Autoexp plugin, then restart Codex.",
+        command: "codex plugin marketplace add shreyashkar-ml/autoexp\ncodex plugin add autoexp@autoexp"
+      },
+      claude: {
+        name: "Claude Code",
+        note: "Add the Autoexp plugin, then restart Claude Code.",
+        command: "claude plugin marketplace add shreyashkar-ml/autoexp\nclaude plugin install autoexp@autoexp"
+      },
+      opencode: {
+        name: "OpenCode",
+        note: "The runtime installer already added the command and agent.",
+        command: "Restart OpenCode, then run  /autoexp <objective>"
+      },
+      pi: {
+        name: "Pi",
+        note: "The runtime installer already added the prompt.",
+        command: "Restart Pi, then run  /autoexp <objective>"
+      }
+    };
+    const name = document.querySelector("#agent-name");
+    const note = document.querySelector("#agent-note");
+    const command = document.querySelector("#agent-command");
+    const agentCopy = document.querySelector("#agent-copy");
+
+    document.querySelectorAll(".agent-tab").forEach(tab => tab.addEventListener("click", () => {
+      document.querySelectorAll(".agent-tab").forEach(item => {
+        item.classList.toggle("active", item === tab);
+        item.setAttribute("aria-selected", item === tab);
+      });
+      const agent = agents[tab.dataset.agent];
+      name.textContent = agent.name;
+      note.textContent = agent.note;
+      command.textContent = agent.command;
+      agentCopy.dataset.copy = agent.command;
+    }));
+
     document.querySelectorAll(".copy").forEach(button => button.addEventListener("click", async () => {
-      await navigator.clipboard.writeText(command);
+      await navigator.clipboard.writeText(button.dataset.copy);
       button.textContent = "copied";
-      setTimeout(() => button.textContent = "copy", 1600);
+      setTimeout(() => button.textContent = "copy", 1400);
     }));
   </script>
 </body>

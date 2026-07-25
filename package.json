@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "mkdir -p public && cp style.css install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && vinext build && mkdir -p dist/.openai && cp .openai/hosting.json dist/.openai/hosting.json",
-    "dev": "mkdir -p public && cp style.css install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && vinext dev"
+    "build": "mkdir -p public/agents && cp style.css install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && cp assets/agents/* public/agents/ && vinext build && mv dist/server/index.js dist/server/app.js && cp hosting/worker.js dist/server/index.js && mkdir -p dist/.openai && cp .openai/hosting.json dist/.openai/hosting.json",
+    "dev": "mkdir -p public/agents && cp style.css install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && cp assets/agents/* public/agents/ && vinext dev"
   },
   "dependencies": {
     "react": "19.2.8",
