@@ -8,9 +8,10 @@
   <meta property="og:description" content="Run reproducible experiments from your coding agent, review the evidence, and send structured feedback directly back.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://autoexp.dev">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%230f1211%22/><circle cx=%2224%22 cy=%2223%22 r=%228%22 fill=%22%239be58c%22/><circle cx=%2242%22 cy=%2241%22 r=%228%22 fill=%22%2378aef5%22/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%230c0c0b%22/><circle cx=%2224%22 cy=%2223%22 r=%228%22 fill=%22%23f2efe7%22/><circle cx=%2242%22 cy=%2241%22 r=%228%22 fill=%22%2362a7ff%22/></svg>">
   <link rel="stylesheet" href="/style.css">
-  <title>Autoexp — experimentation infrastructure for coding agents</title>
+  <meta name="theme-color" content="#0c0c0b">
+  <title>Autoexp - experimentation infrastructure for coding agents</title>
 </head>
 <body>
   <header class="nav shell">
@@ -19,65 +20,64 @@
       <a href="#product">Product</a>
       <a href="#how">How it works</a>
       <a href="#install">Install</a>
-      <a href="https://github.com/shreyashkar-ml/autoexp">GitHub ↗</a>
+      <a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
     </nav>
   </header>
 
   <main class="column">
     <section class="hero" id="install">
-      <div class="eyebrow"><i></i> local-first · open source · agent native</div>
-      <h1>Run experiments with your agent.<br><em>Stay in the loop.</em></h1>
-      <p>Start an experiment from your coding agent, preserve every result, then review the evidence in a real browser UI and send structured feedback straight back.</p>
-      <div class="trust"><span>✓ runs locally</span><span>✓ starts in your existing repo</span><span>✓ complete run evidence</span><span>✓ free &amp; open source</span></div>
+      <div class="eyebrow">Local-first experimentation for coding agents</div>
+      <h1>Run agent-led experiments.<br><em>Stay in the loop.</em></h1>
+      <p>Preserve every result, review the evidence, and send structured feedback directly back to the waiting agent.</p>
       <div class="hero-installer">
-        <span class="kicker">Install + connect</span>
-        <div class="agent-tabs" role="tablist" aria-label="Coding agent">
-          <button class="agent-tab active" data-agent="codex" role="tab" aria-selected="true">
+        <span class="installer-label">Install and connect</span>
+        <div class="agent-tabs" role="group" aria-label="Coding agent">
+          <button class="agent-tab active" type="button" data-agent="codex" aria-pressed="true">
             <img src="/assets/agents/codex.png" alt=""><span>Codex</span>
           </button>
-          <button class="agent-tab" data-agent="claude" role="tab" aria-selected="false">
+          <button class="agent-tab" type="button" data-agent="claude" aria-pressed="false">
             <img src="/assets/agents/claude.svg" alt=""><span>Claude Code</span>
           </button>
-          <button class="agent-tab" data-agent="opencode" role="tab" aria-selected="false">
+          <button class="agent-tab" type="button" data-agent="opencode" aria-pressed="false">
             <img src="/assets/agents/opencode.svg" alt=""><span>OpenCode</span>
           </button>
-          <button class="agent-tab" data-agent="pi" role="tab" aria-selected="false">
+          <button class="agent-tab" type="button" data-agent="pi" aria-pressed="false">
             <img src="/assets/agents/pi.svg" alt=""><span>Pi</span>
           </button>
         </div>
         <div class="command">
           <span>$</span>
           <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
-          <button class="copy" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
+          <button class="copy" type="button" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
         </div>
-        <div class="agent-panel" role="tabpanel" aria-live="polite">
+        <div class="agent-panel" aria-live="polite">
           <div>
             <strong id="agent-name">Codex</strong>
             <span id="agent-note">Add the Autoexp plugin, then restart Codex.</span>
           </div>
           <pre id="agent-command">codex plugin marketplace add shreyashkar-ml/autoexp
 codex plugin add autoexp@autoexp</pre>
-          <button class="copy" id="agent-copy" data-copy="codex plugin marketplace add shreyashkar-ml/autoexp&#10;codex plugin add autoexp@autoexp">copy</button>
+          <button class="copy" type="button" id="agent-copy" data-copy="codex plugin marketplace add shreyashkar-ml/autoexp&#10;codex plugin add autoexp@autoexp">copy</button>
         </div>
-        <a class="github-link" href="https://github.com/shreyashkar-ml/autoexp">View on GitHub →</a>
+        <a class="github-link" href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
       </div>
     </section>
 
     <section class="promise">
-      <p>One workflow to experiment. One workflow to inspect and steer.</p>
-      <div>
-        <span><b>/autoexp</b> start from an objective</span>
-        <span><b>Run</b> preserve every result</span>
-        <span><b>/autoexp-review</b> inspect in the browser</span>
-        <span><b>Continue</b> feedback returns to the agent</span>
-      </div>
+      <p>One loop: start the work, preserve the evidence, review it, then steer the next attempt.</p>
+      <ol class="workflow-line">
+        <li><b>/autoexp</b><span>Start from an objective</span></li>
+        <li><b>Run ledger</b><span>Preserve exact evidence</span></li>
+        <li><b>/autoexp-review</b><span>Inspect in the browser</span></li>
+        <li><b>Agent resumes</b><span>Feedback becomes the next instruction</span></li>
+      </ol>
     </section>
 
     <section id="product" class="workflow-feature">
       <div class="feature-copy">
-        <span class="kicker blue">/autoexp · start and run</span>
+        <div class="command-label"><code>/autoexp</code><span>Start and run</span></div>
         <h2>Turn a goal into<br>a real experiment.</h2>
-        <p>Invoke <code>/autoexp &lt;objective&gt;</code> from an existing repository. Your agent understands the objective, finds the useful code and data already there, defines the experiment boundary, and runs the work through Autoexp.</p>
+        <p>Invoke <code>/autoexp &lt;objective&gt;</code> in an existing repository. Your agent defines the boundary, uses the code and data already there, and runs the work through Autoexp.</p>
         <ul>
           <li>Standard experiments or metric-driven Autoresearch</li>
           <li>Source, inputs, logs, outputs, and reports preserved per run</li>
@@ -87,7 +87,7 @@ codex plugin add autoexp@autoexp</pre>
       </div>
       <div class="feature-visual">
         <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Experiment session</span></div>
-        <a class="shot" href="/assets/autoresearch_demo.png" target="_blank" aria-label="Open Autoexp experiment screenshot">
+        <a class="shot" href="/assets/autoresearch_demo.png" target="_blank" rel="noopener" aria-label="Open Autoexp experiment screenshot">
             <img src="/assets/autoresearch_demo.png" alt="Autoexp experiment attempt ledger, metrics, and source changes">
         </a>
       </div>
@@ -96,15 +96,15 @@ codex plugin add autoexp@autoexp</pre>
     <section class="workflow-feature reverse">
       <div class="feature-visual review-visual">
         <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Browser feedback review</span></div>
-        <a class="shot" href="/assets/autoexp_demo.png" target="_blank" aria-label="Open Autoexp browser review screenshot">
+        <a class="shot" href="/assets/autoexp_demo.png" target="_blank" rel="noopener" aria-label="Open Autoexp browser review screenshot">
             <img src="/assets/autoexp_demo.png" alt="Autoexp browser review showing experiment evidence and artifacts">
         </a>
-        <span class="review-callout">↗ Send follow-up to agent</span>
+        <span class="review-callout">Send follow-up to agent</span>
       </div>
       <div class="feature-copy">
-        <span class="kicker green">/autoexp-review · inspect and steer</span>
+        <div class="command-label"><code>/autoexp-review</code><span>Inspect and steer</span></div>
         <h2>Review the evidence.<br>Send the next move.</h2>
-        <p>Invoke <code>/autoexp-review</code> when you want to inspect results or redirect the work. Autoexp opens a short-lived local review session and pauses the agent until you submit one structured feedback batch.</p>
+        <p>Invoke <code>/autoexp-review</code> to inspect results or redirect the work. Autoexp opens a local review session and pauses the agent until you submit feedback.</p>
         <ul>
           <li>Inspect source, diffs, logs, reports, and rendered artifacts</li>
           <li>Review CSV tables, images, metrics, and run lineage</li>
@@ -116,11 +116,10 @@ codex plugin add autoexp@autoexp</pre>
 
     <section id="how" class="how">
       <div class="how-heading">
-        <span class="kicker">How it works</span>
         <h2>Two commands.<br>One experiment loop.</h2>
-        <div class="workflow-tabs" role="tablist" aria-label="Workflow">
-          <button class="workflow-tab active" data-workflow="run" role="tab" aria-selected="true">/autoexp</button>
-          <button class="workflow-tab" data-workflow="review" role="tab" aria-selected="false">/autoexp-review</button>
+        <div class="workflow-tabs" role="group" aria-label="Workflow">
+          <button class="workflow-tab active" type="button" data-workflow="run" aria-pressed="true">/autoexp</button>
+          <button class="workflow-tab" type="button" data-workflow="review" aria-pressed="false">/autoexp-review</button>
         </div>
       </div>
       <div class="loop" aria-live="polite">
@@ -139,7 +138,6 @@ codex plugin add autoexp@autoexp</pre>
 
     <section class="archive">
       <div>
-        <span class="kicker">Outside the agent session</span>
         <h2>Every project.<br>One read-only view.</h2>
       </div>
       <div>
@@ -150,11 +148,10 @@ codex plugin add autoexp@autoexp</pre>
     </section>
 
     <section class="cta">
-      <span class="kicker">Run · review · continue</span>
       <h2>Organize and supercharge your AI-led experimentations</h2>
       <div>
-        <a class="primary" href="#install">Install Autoexp</a>
-        <a href="https://github.com/shreyashkar-ml/autoexp">Explore the repository →</a>
+        <a class="primary" href="#install">Install</a>
+        <a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
       </div>
     </section>
   </main>
@@ -208,7 +205,7 @@ codex plugin add autoexp@autoexp</pre>
     document.querySelectorAll(".agent-tab").forEach(tab => tab.addEventListener("click", () => {
       document.querySelectorAll(".agent-tab").forEach(item => {
         item.classList.toggle("active", item === tab);
-        item.setAttribute("aria-selected", item === tab);
+        item.setAttribute("aria-pressed", item === tab);
       });
       const agent = agents[tab.dataset.agent];
       name.textContent = agent.name;
@@ -218,15 +215,19 @@ codex plugin add autoexp@autoexp</pre>
     }));
 
     document.querySelectorAll(".copy").forEach(button => button.addEventListener("click", async () => {
-      await navigator.clipboard.writeText(button.dataset.copy);
-      button.textContent = "copied";
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy);
+        button.textContent = "copied";
+      } catch {
+        button.textContent = "failed";
+      }
       setTimeout(() => button.textContent = "copy", 1400);
     }));
 
     document.querySelectorAll(".workflow-tab").forEach(tab => tab.addEventListener("click", () => {
       document.querySelectorAll(".workflow-tab").forEach(item => {
         item.classList.toggle("active", item === tab);
-        item.setAttribute("aria-selected", item === tab);
+        item.setAttribute("aria-pressed", item === tab);
       });
       workflows[tab.dataset.workflow].forEach((step, index) => {
         document.querySelector(`#loop-${["one", "two", "three"][index]}`).textContent = step[0];
