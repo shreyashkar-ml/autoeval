@@ -26,9 +26,9 @@
   <main class="column">
     <section class="hero" id="install">
       <div class="eyebrow"><i></i> local-first · open source · agent native</div>
-      <h1>Run the experiment.<br><em>Keep the evidence.</em></h1>
-      <p>Reproducible experimentation infrastructure for coding agents. Compare variants, steer autoresearch, and decide from results—not vibes.</p>
-      <div class="trust"><span>✓ runs locally</span><span>✓ no account</span><span>✓ immutable runs</span><span>✓ MIT licensed</span></div>
+      <h1>Give your coding agent<br><em>a real experiment loop.</em></h1>
+      <p>Autoexp ties every agent change to its inputs, outputs, logs, metrics, and source—so you can compare what happened, reproduce it, and decide what deserves to survive.</p>
+      <div class="trust"><span>✓ runs locally</span><span>✓ works with any experiment</span><span>✓ complete run history</span><span>✓ free &amp; open source</span></div>
       <div class="hero-installer">
         <span class="kicker">Install + connect</span>
         <div class="agent-tabs" role="tablist" aria-label="Coding agent">
@@ -63,57 +63,82 @@ codex plugin add autoexp@autoexp</pre>
       </div>
     </section>
 
-    <section id="product" class="product">
-      <div class="section-title compact-title">
-        <span class="kicker">Two workflows</span>
-        <h2>Experiment. Or optimize.</h2>
-        <p>Both preserve the complete trail from source change to decision.</p>
+    <section class="promise">
+      <p>Your agent can already edit and run code. Autoexp gives those attempts memory, evidence, and a decision loop.</p>
+      <div>
+        <span><b>Run</b> repeatable experiments</span>
+        <span><b>Inspect</b> every artifact</span>
+        <span><b>Compare</b> exact snapshots</span>
+        <span><b>Report</b> from recorded evidence</span>
       </div>
-      <div class="flows">
-        <article>
-          <div class="flow-head">
-            <span>Standard experimentation</span>
-            <code>compare variants</code>
-          </div>
-          <a class="shot" href="/autoexp_demo.png" target="_blank" aria-label="Open standard experimentation screenshot">
+    </section>
+
+    <section id="product" class="workflow-feature">
+      <div class="feature-copy">
+        <span class="kicker blue">Standard experimentation</span>
+        <h2>Explore freely.<br>Lose nothing.</h2>
+        <p>Let an agent try scripts, parameters, prompts, protocols, or data transforms. Every run preserves the exact state and every useful output, so the final recommendation comes from evidence—not the agent’s memory.</p>
+        <ul>
+          <li>Source and parameters snapshotted per run</li>
+          <li>Outputs, logs, and reports tied to a stable run ID</li>
+          <li>Rerun, restore, or diff any previous attempt</li>
+          <li>Review every project in one local browser UI</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Standard experiments</span></div>
+        <a class="shot" href="/autoexp_demo.png" target="_blank" aria-label="Open standard experimentation screenshot">
             <img src="/autoexp_demo.png" alt="Autoexp standard experimentation dashboard">
-          </a>
-          <p>Compare focused variants, inspect sealed evidence, and turn the full run history into a recommendation.</p>
-        </article>
-        <article>
-          <div class="flow-head">
-            <span>Autoresearch</span>
-            <code>optimize a metric</code>
-          </div>
-          <a class="shot" href="/autoresearch_demo.png" target="_blank" aria-label="Open autoresearch screenshot">
+        </a>
+      </div>
+    </section>
+
+    <section class="workflow-feature reverse">
+      <div class="feature-visual">
+        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Autoresearch</span></div>
+        <a class="shot" href="/autoresearch_demo.png" target="_blank" aria-label="Open autoresearch screenshot">
             <img src="/autoresearch_demo.png" alt="Autoexp autoresearch loop and attempt ledger">
-          </a>
-          <p>Freeze the evaluator, let the agent iterate, and keep or revert every scored attempt automatically.</p>
-        </article>
+        </a>
+      </div>
+      <div class="feature-copy">
+        <span class="kicker green">Autoresearch</span>
+        <h2>Turn a metric into<br>a research loop.</h2>
+        <p>Give the agent an objective and a fixed evaluator. It proposes one hypothesis at a time, runs it, reads the score, and keeps only real improvements—while you retain the full attempt ledger.</p>
+        <ul>
+          <li>One explicit hypothesis per attempt</li>
+          <li>Metric history against baseline and best result</li>
+          <li>Improvements kept; misses automatically reverted</li>
+          <li>Source changes and decisions visible together</li>
+        </ul>
       </div>
     </section>
 
     <section id="how" class="how">
-      <div class="section-title compact-title">
+      <div class="how-heading">
         <span class="kicker">How it works</span>
-        <h2>Your agent proposes. Autoexp proves.</h2>
+        <h2>Keep using your agent.<br>Autoexp closes the loop.</h2>
+        <div class="workflow-tabs" role="tablist" aria-label="Workflow">
+          <button class="workflow-tab active" data-workflow="standard" role="tab" aria-selected="true">Standard</button>
+          <button class="workflow-tab" data-workflow="autoresearch" role="tab" aria-selected="false">Autoresearch</button>
+        </div>
+      </div>
+      <div class="loop" aria-live="polite">
+        <div><b>1</b><strong id="loop-one">Ask the agent to experiment</strong><span id="loop-one-note">Describe the variants, artifacts, or question you want explored.</span></div>
+        <i>→</i>
+        <div><b>2</b><strong id="loop-two">Autoexp records each run</strong><span id="loop-two-note">Source, parameters, logs, outputs, and reports stay together.</span></div>
+        <i>→</i>
+        <div><b>3</b><strong id="loop-three">Compare and decide</strong><span id="loop-three-note">Inspect the evidence, restore any run, and report the result.</span></div>
       </div>
       <div class="steps">
-        <article><b>01</b><h3>Define the boundary</h3><p>Choose the objective, editable source, inputs, command, and evaluator.</p></article>
-        <article><b>02</b><h3>Run and seal</h3><p>Each proposal runs reproducibly with source, logs, metrics, and artifacts preserved.</p></article>
-        <article><b>03</b><h3>Decide from evidence</h3><p>A metric or your browser review keeps, reverts, or redirects the next attempt.</p></article>
-      </div>
-      <div class="capabilities">
-        <span>immutable run evidence</span>
-        <span>local browser review</span>
-        <span>source snapshots + diffs</span>
-        <span>agent feedback loop</span>
+        <article><b>1</b><h3>Use your agent normally</h3><p>Open an Autoexp project in Codex, Claude Code, OpenCode, or Pi and describe the experiment in plain language.</p></article>
+        <article><b>2</b><h3>Review a real record</h3><p>See the source, parameters, outputs, logs, reports, metrics, and diffs in a purpose-built local workspace.</p></article>
+        <article><b>3</b><h3>Build on what worked</h3><p>Restore or rerun any attempt. In Autoresearch, the score itself keeps improvements and reverts regressions.</p></article>
       </div>
     </section>
 
     <section class="cta">
       <span class="kicker">Local autonomous experimentation</span>
-      <h2>Give the next agent change a result.</h2>
+      <h2>Stop letting experiments disappear into terminal scrollback.</h2>
       <div>
         <a class="primary" href="#install">Install Autoexp</a>
         <a href="https://github.com/shreyashkar-ml/autoexp">Explore the repository →</a>
@@ -154,6 +179,18 @@ codex plugin add autoexp@autoexp</pre>
     const note = document.querySelector("#agent-note");
     const command = document.querySelector("#agent-command");
     const agentCopy = document.querySelector("#agent-copy");
+    const workflows = {
+      standard: [
+        ["Ask the agent to experiment", "Describe the variants, artifacts, or question you want explored."],
+        ["Autoexp records each run", "Source, parameters, logs, outputs, and reports stay together."],
+        ["Compare and decide", "Inspect the evidence, restore any run, and report the result."]
+      ],
+      autoresearch: [
+        ["Set the objective", "Choose the metric, direction, budget, and fixed evaluator."],
+        ["The agent tests a hypothesis", "It changes the implementation, runs it, and reads the score."],
+        ["Keep or revert by evidence", "Improvements become the new best; regressions roll back automatically."]
+      ]
+    };
 
     document.querySelectorAll(".agent-tab").forEach(tab => tab.addEventListener("click", () => {
       document.querySelectorAll(".agent-tab").forEach(item => {
@@ -171,6 +208,17 @@ codex plugin add autoexp@autoexp</pre>
       await navigator.clipboard.writeText(button.dataset.copy);
       button.textContent = "copied";
       setTimeout(() => button.textContent = "copy", 1400);
+    }));
+
+    document.querySelectorAll(".workflow-tab").forEach(tab => tab.addEventListener("click", () => {
+      document.querySelectorAll(".workflow-tab").forEach(item => {
+        item.classList.toggle("active", item === tab);
+        item.setAttribute("aria-selected", item === tab);
+      });
+      workflows[tab.dataset.workflow].forEach((step, index) => {
+        document.querySelector(`#loop-${["one", "two", "three"][index]}`).textContent = step[0];
+        document.querySelector(`#loop-${["one", "two", "three"][index]}-note`).textContent = step[1];
+      });
     }));
   </script>
 </body>
