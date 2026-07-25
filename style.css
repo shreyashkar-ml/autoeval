@@ -39,7 +39,7 @@ button { font: inherit; }
 .nav a:hover, footer a:hover { color: var(--ink); }
 .column { border-inline: 1px solid var(--line); }
 
-.hero, .promise, .workflow-feature, .how, .cta { padding-inline: 32px; }
+.hero, .promise, .workflow-feature, .how, .archive, .cta { padding-inline: 32px; }
 .hero {
   position: relative;
   overflow: hidden;
@@ -140,6 +140,7 @@ h1 em { color: var(--blue); font-style: normal; }
 .workflow-feature.reverse { grid-template-columns: 1.18fr .82fr; }
 .feature-copy h2, .how-heading h2, .cta h2 { margin: 13px 0 18px; font-size: clamp(31px, 4vw, 44px); line-height: 1.03; letter-spacing: -.05em; }
 .feature-copy > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.feature-copy code { padding: 1px 4px; border: 1px solid var(--line); border-radius: 3px; color: var(--ink-soft); background: var(--panel); font: 10px/1 var(--mono); }
 .feature-copy ul { margin: 22px 0 0; padding: 0; list-style: none; }
 .feature-copy li { position: relative; margin-top: 10px; padding-left: 16px; color: var(--ink-soft); font-size: 11px; line-height: 1.45; }
 .feature-copy li::before { position: absolute; left: 0; color: var(--blue); content: "•"; }
@@ -154,6 +155,8 @@ h1 em { color: var(--blue); font-style: normal; }
 .shot { display: block; aspect-ratio: 1919 / 946; overflow: hidden; background: #090908; cursor: zoom-in; }
 .shot img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .2s ease; }
 .shot:hover img { transform: scale(1.012); }
+.review-visual { position: relative; }
+.review-callout { position: absolute; right: 14px; bottom: 13px; padding: 10px 13px; border-radius: 4px; color: #08110b; background: var(--green); box-shadow: 0 8px 24px rgba(0, 0, 0, .42); font: 700 10px/1 var(--mono); pointer-events: none; }
 
 .how { padding-top: 76px; padding-bottom: 76px; border-bottom: 1px solid var(--line); }
 .how-heading { text-align: center; }
@@ -175,6 +178,13 @@ h1 em { color: var(--blue); font-style: normal; }
 .steps h3 { margin: 34px 0 8px; font-size: 14px; }
 .steps p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
+.archive { display: grid; grid-template-columns: .85fr 1.15fr; gap: 40px; padding-top: 58px; padding-bottom: 58px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.archive h2 { margin: 13px 0 0; font-size: clamp(29px, 3.8vw, 40px); line-height: 1.03; letter-spacing: -.05em; }
+.archive code { display: block; margin-bottom: 16px; padding: 13px 15px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--green); background: #090908; font: 11px/1 var(--mono); }
+.archive p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.archive small { display: block; margin-top: 16px; color: var(--muted-2); font: 9px/1.5 var(--mono); }
+.archive small b { color: var(--ink-soft); font-weight: 500; }
+
 .cta { padding-top: 72px; padding-bottom: 72px; text-align: center; border-top: 1px solid var(--line); }
 .cta h2 { max-width: 620px; margin: 18px auto 0; }
 .cta > div { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 24px; color: var(--muted); font: 10px/1 var(--mono); }
@@ -193,13 +203,14 @@ footer div { display: flex; gap: 18px; }
   .promise span:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .workflow-feature, .workflow-feature.reverse { grid-template-columns: 1fr; gap: 28px; }
   .workflow-feature.reverse .feature-visual { order: 2; }
+  .archive { grid-template-columns: 1fr; gap: 24px; }
   .loop { grid-template-columns: 1fr; }
   .loop > i { transform: rotate(90deg); text-align: center; }
 }
 
 @media (max-width: 520px) {
   .shell, .column { width: calc(100% - 20px); }
-  .hero, .promise, .workflow-feature, .how, .cta { padding-inline: 18px; }
+  .hero, .promise, .workflow-feature, .how, .archive, .cta { padding-inline: 18px; }
   .hero { padding-top: 54px; padding-bottom: 50px; }
   h1 { font-size: 42px; }
   .hero > p { font-size: 14px; }

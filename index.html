@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Local-first experimentation infrastructure for coding agents.">
   <meta property="og:title" content="Autoexp">
-  <meta property="og:description" content="Run reproducible experiments, preserve evidence, and steer autonomous research from your coding agent.">
+  <meta property="og:description" content="Run reproducible experiments from your coding agent, review the evidence, and send structured feedback directly back.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://autoexp.dev">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%230f1211%22/><circle cx=%2224%22 cy=%2223%22 r=%228%22 fill=%22%239be58c%22/><circle cx=%2242%22 cy=%2241%22 r=%228%22 fill=%22%2378aef5%22/></svg>">
@@ -26,23 +26,23 @@
   <main class="column">
     <section class="hero" id="install">
       <div class="eyebrow"><i></i> local-first · open source · agent native</div>
-      <h1>Give your coding agent<br><em>a real experiment loop.</em></h1>
-      <p>Autoexp ties every agent change to its inputs, outputs, logs, metrics, and source—so you can compare what happened, reproduce it, and decide what deserves to survive.</p>
-      <div class="trust"><span>✓ runs locally</span><span>✓ works with any experiment</span><span>✓ complete run history</span><span>✓ free &amp; open source</span></div>
+      <h1>Run experiments with your agent.<br><em>Stay in the loop.</em></h1>
+      <p>Start an experiment from your coding agent, preserve every result, then review the evidence in a real browser UI and send structured feedback straight back.</p>
+      <div class="trust"><span>✓ runs locally</span><span>✓ starts in your existing repo</span><span>✓ complete run evidence</span><span>✓ free &amp; open source</span></div>
       <div class="hero-installer">
         <span class="kicker">Install + connect</span>
         <div class="agent-tabs" role="tablist" aria-label="Coding agent">
           <button class="agent-tab active" data-agent="codex" role="tab" aria-selected="true">
-            <img src="/agents/codex.png" alt=""><span>Codex</span>
+            <img src="/assets/agents/codex.png" alt=""><span>Codex</span>
           </button>
           <button class="agent-tab" data-agent="claude" role="tab" aria-selected="false">
-            <img src="/agents/claude.svg" alt=""><span>Claude Code</span>
+            <img src="/assets/agents/claude.svg" alt=""><span>Claude Code</span>
           </button>
           <button class="agent-tab" data-agent="opencode" role="tab" aria-selected="false">
-            <img src="/agents/opencode.svg" alt=""><span>OpenCode</span>
+            <img src="/assets/agents/opencode.svg" alt=""><span>OpenCode</span>
           </button>
           <button class="agent-tab" data-agent="pi" role="tab" aria-selected="false">
-            <img src="/agents/pi.svg" alt=""><span>Pi</span>
+            <img src="/assets/agents/pi.svg" alt=""><span>Pi</span>
           </button>
         </div>
         <div class="command">
@@ -64,51 +64,52 @@ codex plugin add autoexp@autoexp</pre>
     </section>
 
     <section class="promise">
-      <p>Your agent can already edit and run code. Autoexp gives those attempts memory, evidence, and a decision loop.</p>
+      <p>One workflow to experiment. One workflow to inspect and steer.</p>
       <div>
-        <span><b>Run</b> repeatable experiments</span>
-        <span><b>Inspect</b> every artifact</span>
-        <span><b>Compare</b> exact snapshots</span>
-        <span><b>Report</b> from recorded evidence</span>
+        <span><b>/autoexp</b> start from an objective</span>
+        <span><b>Run</b> preserve every result</span>
+        <span><b>/autoexp-review</b> inspect in the browser</span>
+        <span><b>Continue</b> feedback returns to the agent</span>
       </div>
     </section>
 
     <section id="product" class="workflow-feature">
       <div class="feature-copy">
-        <span class="kicker blue">Standard experimentation</span>
-        <h2>Explore freely.<br>Lose nothing.</h2>
-        <p>Let an agent try scripts, parameters, prompts, protocols, or data transforms. Every run preserves the exact state and every useful output, so the final recommendation comes from evidence—not the agent’s memory.</p>
+        <span class="kicker blue">/autoexp · start and run</span>
+        <h2>Turn a goal into<br>a real experiment.</h2>
+        <p>Invoke <code>/autoexp &lt;objective&gt;</code> from an existing repository. Your agent understands the objective, finds the useful code and data already there, defines the experiment boundary, and runs the work through Autoexp.</p>
         <ul>
-          <li>Source and parameters snapshotted per run</li>
-          <li>Outputs, logs, and reports tied to a stable run ID</li>
-          <li>Rerun, restore, or diff any previous attempt</li>
-          <li>Review every project in one local browser UI</li>
+          <li>Standard experiments or metric-driven Autoresearch</li>
+          <li>Source, inputs, logs, outputs, and reports preserved per run</li>
+          <li>Rerun, restore, and compare exact attempts</li>
+          <li>Reports and recommendations grounded in recorded evidence</li>
         </ul>
       </div>
       <div class="feature-visual">
-        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Standard experiments</span></div>
-        <a class="shot" href="/autoexp_demo.png" target="_blank" aria-label="Open standard experimentation screenshot">
-            <img src="/autoexp_demo.png" alt="Autoexp standard experimentation dashboard">
+        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Experiment session</span></div>
+        <a class="shot" href="/assets/autoresearch_demo.png" target="_blank" aria-label="Open Autoexp experiment screenshot">
+            <img src="/assets/autoresearch_demo.png" alt="Autoexp experiment attempt ledger, metrics, and source changes">
         </a>
       </div>
     </section>
 
     <section class="workflow-feature reverse">
-      <div class="feature-visual">
-        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Autoresearch</span></div>
-        <a class="shot" href="/autoresearch_demo.png" target="_blank" aria-label="Open autoresearch screenshot">
-            <img src="/autoresearch_demo.png" alt="Autoexp autoresearch loop and attempt ledger">
+      <div class="feature-visual review-visual">
+        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Browser feedback review</span></div>
+        <a class="shot" href="/assets/autoexp_demo.png" target="_blank" aria-label="Open Autoexp browser review screenshot">
+            <img src="/assets/autoexp_demo.png" alt="Autoexp browser review showing experiment evidence and artifacts">
         </a>
+        <span class="review-callout">↗ Send follow-up to agent</span>
       </div>
       <div class="feature-copy">
-        <span class="kicker green">Autoresearch</span>
-        <h2>Turn a metric into<br>a research loop.</h2>
-        <p>Give the agent an objective and a fixed evaluator. It proposes one hypothesis at a time, runs it, reads the score, and keeps only real improvements—while you retain the full attempt ledger.</p>
+        <span class="kicker green">/autoexp-review · inspect and steer</span>
+        <h2>Review the evidence.<br>Send the next move.</h2>
+        <p>Invoke <code>/autoexp-review</code> when you want to inspect results or redirect the work. Autoexp opens a short-lived local review session and pauses the agent until you submit one structured feedback batch.</p>
         <ul>
-          <li>One explicit hypothesis per attempt</li>
-          <li>Metric history against baseline and best result</li>
-          <li>Improvements kept; misses automatically reverted</li>
-          <li>Source changes and decisions visible together</li>
+          <li>Inspect source, diffs, logs, reports, and rendered artifacts</li>
+          <li>Review CSV tables, images, metrics, and run lineage</li>
+          <li>Attach scoped notes to what you are viewing</li>
+          <li>Submit once; feedback returns directly to the waiting agent</li>
         </ul>
       </div>
     </section>
@@ -116,29 +117,41 @@ codex plugin add autoexp@autoexp</pre>
     <section id="how" class="how">
       <div class="how-heading">
         <span class="kicker">How it works</span>
-        <h2>Keep using your agent.<br>Autoexp closes the loop.</h2>
+        <h2>Two commands.<br>One experiment loop.</h2>
         <div class="workflow-tabs" role="tablist" aria-label="Workflow">
-          <button class="workflow-tab active" data-workflow="standard" role="tab" aria-selected="true">Standard</button>
-          <button class="workflow-tab" data-workflow="autoresearch" role="tab" aria-selected="false">Autoresearch</button>
+          <button class="workflow-tab active" data-workflow="run" role="tab" aria-selected="true">/autoexp</button>
+          <button class="workflow-tab" data-workflow="review" role="tab" aria-selected="false">/autoexp-review</button>
         </div>
       </div>
       <div class="loop" aria-live="polite">
-        <div><b>1</b><strong id="loop-one">Ask the agent to experiment</strong><span id="loop-one-note">Describe the variants, artifacts, or question you want explored.</span></div>
+        <div><b>1</b><strong id="loop-one">State the objective</strong><span id="loop-one-note">Tell the agent what to test, compare, or optimize.</span></div>
         <i>→</i>
-        <div><b>2</b><strong id="loop-two">Autoexp records each run</strong><span id="loop-two-note">Source, parameters, logs, outputs, and reports stay together.</span></div>
+        <div><b>2</b><strong id="loop-two">The agent runs the work</strong><span id="loop-two-note">It builds on your repository and executes focused attempts.</span></div>
         <i>→</i>
-        <div><b>3</b><strong id="loop-three">Compare and decide</strong><span id="loop-three-note">Inspect the evidence, restore any run, and report the result.</span></div>
+        <div><b>3</b><strong id="loop-three">Autoexp seals the evidence</strong><span id="loop-three-note">Every result stays tied to the exact source and inputs.</span></div>
       </div>
       <div class="steps">
-        <article><b>1</b><h3>Use your agent normally</h3><p>Open an Autoexp project in Codex, Claude Code, OpenCode, or Pi and describe the experiment in plain language.</p></article>
-        <article><b>2</b><h3>Review a real record</h3><p>See the source, parameters, outputs, logs, reports, metrics, and diffs in a purpose-built local workspace.</p></article>
-        <article><b>3</b><h3>Build on what worked</h3><p>Restore or rerun any attempt. In Autoresearch, the score itself keeps improvements and reverts regressions.</p></article>
+        <article><b>1</b><h3>Start inside your repository</h3><p>Use your coding agent normally. Autoexp reuses the implementation, data, evaluators, and constraints already present.</p></article>
+        <article><b>2</b><h3>Review on a real surface</h3><p>Launch the blocking browser review when terminal output is not enough. The agent waits while you inspect the complete record.</p></article>
+        <article><b>3</b><h3>Feedback flows back</h3><p>Submit scoped notes once. The agent receives them as its next instruction and continues the same experimentation session.</p></article>
+      </div>
+    </section>
+
+    <section class="archive">
+      <div>
+        <span class="kicker">Outside the agent session</span>
+        <h2>Every project.<br>One read-only view.</h2>
+      </div>
+      <div>
+        <code>$ autoexp view</code>
+        <p>Open all registered experiments and research projects in one local dashboard. Browse and download runs, artifacts, reports, metrics, and diffs without attaching a feedback capability.</p>
+        <small>Use <b>autoexp view</b> for history. Use <b>/autoexp-review</b> when the agent should wait for your feedback.</small>
       </div>
     </section>
 
     <section class="cta">
-      <span class="kicker">Local autonomous experimentation</span>
-      <h2>Stop letting experiments disappear into terminal scrollback.</h2>
+      <span class="kicker">Run · review · continue</span>
+      <h2>Give agent-led experiments evidence—and a human decision point.</h2>
       <div>
         <a class="primary" href="#install">Install Autoexp</a>
         <a href="https://github.com/shreyashkar-ml/autoexp">Explore the repository →</a>
@@ -180,15 +193,15 @@ codex plugin add autoexp@autoexp</pre>
     const command = document.querySelector("#agent-command");
     const agentCopy = document.querySelector("#agent-copy");
     const workflows = {
-      standard: [
-        ["Ask the agent to experiment", "Describe the variants, artifacts, or question you want explored."],
-        ["Autoexp records each run", "Source, parameters, logs, outputs, and reports stay together."],
-        ["Compare and decide", "Inspect the evidence, restore any run, and report the result."]
+      run: [
+        ["State the objective", "Tell the agent what to test, compare, or optimize."],
+        ["The agent runs the work", "It builds on your repository and executes focused attempts."],
+        ["Autoexp seals the evidence", "Every result stays tied to the exact source and inputs."]
       ],
-      autoresearch: [
-        ["Set the objective", "Choose the metric, direction, budget, and fixed evaluator."],
-        ["The agent tests a hypothesis", "It changes the implementation, runs it, and reads the score."],
-        ["Keep or revert by evidence", "Improvements become the new best; regressions roll back automatically."]
+      review: [
+        ["Invoke /autoexp-review", "A short-lived local review opens for the active experiment."],
+        ["Inspect while the agent waits", "Review artifacts, reports, source, logs, metrics, and diffs."],
+        ["Send one feedback batch", "Your scoped notes return directly to the agent and it resumes."]
       ]
     };
 
