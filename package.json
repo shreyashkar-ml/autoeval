@@ -1,0 +1,14 @@
+{
+  "name": "autoexp-site",
+  "private": true,
+  "scripts": {
+    "dev": "mkdir -p public && cp install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && next dev",
+    "build": "mkdir -p public && cp install.sh assets/autoexp_demo.png assets/autoresearch_demo.png public/ && next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "16.2.11",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  }
+}

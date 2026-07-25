@@ -34,10 +34,10 @@ AI agents are already good at proposing code. The harder problem is the harness 
 First, install the runtime:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shreyashkar-ml/autoexp/main/install.sh | bash
+curl -fsSL https://autoexp.dev/install.sh | bash
 ```
 
-Then choose your agent and install its plugin:
+Then finish setup for your agent:
 
 <details>
 <summary>Codex</summary>
@@ -57,16 +57,28 @@ claude plugin install autoexp@autoexp
 ```
 </details>
 
-Restart your agent after plugin installation.
+<details>
+<summary>OpenCode</summary>
+
+No extra command is needed. The runtime installer places the shared skills in `~/.agents/skills`, command wrappers in `~/.config/opencode/commands`, and a narrowly scoped Autoexp runner in `~/.config/opencode/agents`.
+</details>
+
+<details>
+<summary>Pi</summary>
+
+No extra command is needed. The runtime installer places the shared skills in `~/.agents/skills` and prompt templates in `~/.pi/agent/prompts`.
+</details>
+
+Restart your agent after installation.
 
 ## Use Autoexp from your agent
 
 Autoexp exposes two agent workflows:
 
-| Workflow | Codex | Claude Code |
-| --- | --- | --- |
-| Start or continue experiments | `$autoexp <objective>` | `/autoexp <objective>` |
-| Open browser feedback review | `$autoexp-review` | `/autoexp-review` |
+| Workflow | Codex | Claude Code | OpenCode | Pi |
+| --- | --- | --- | --- | --- |
+| Start or continue experiments | `$autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` |
+| Open browser feedback review | `$autoexp-review` | `/autoexp-review` | `/autoexp-review` | `/autoexp-review` |
 
 ### Open your existing repository and start experimentation or autoresearch loop with autoexp.
 

@@ -12,6 +12,10 @@ dist/
 venv/
 .env
 node_modules/
+.next/
+public/autoexp_demo.png
+public/autoresearch_demo.png
+public/install.sh
 tests/
 technical_overview.md
 
