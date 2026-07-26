@@ -26,7 +26,7 @@ Explore the workflow and installation options at [autoexp.dev](https://autoexp.d
       <p>Optimize a measurable objective with a frozen evaluator and a keep-or-revert loop.</p>
     </td>
     <td width="64%">
-      <img src="assets/autoresearch_demo.png" alt="Autoexp Autoresearch dashboard showing the scored loop, final state, and attempt ledger">
+      <img src="assets/autoresearch_demo.png?v=20260726" alt="Autoexp Autoresearch dashboard showing the scored loop, final state, and attempt ledger">
     </td>
   </tr>
 </table>
