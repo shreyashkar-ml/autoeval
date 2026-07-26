@@ -20,7 +20,10 @@
       <a href="#product">Product</a>
       <a href="#how">How it works</a>
       <a href="#install">Install</a>
-      <a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
+      <a class="nav-github" href="https://github.com/shreyashkar-ml/autoexp" aria-label="Autoexp on GitHub">
+        <img src="https://cdn.simpleicons.org/github/d7d3ca" alt="">
+        <b id="github-stars">2</b>
+      </a>
     </nav>
   </header>
 
@@ -59,7 +62,6 @@
 codex plugin add autoexp@autoexp</pre>
           <button class="copy" type="button" id="agent-copy" data-copy="codex plugin marketplace add shreyashkar-ml/autoexp&#10;codex plugin add autoexp@autoexp">copy</button>
         </div>
-        <a class="github-link" href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
       </div>
     </section>
 
@@ -96,8 +98,8 @@ codex plugin add autoexp@autoexp</pre>
     <section class="workflow-feature reverse">
       <div class="feature-visual review-visual">
         <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Browser feedback review</span></div>
-        <button class="shot" type="button" data-image="/assets/autoexp_demo.png" aria-label="Zoom Autoexp browser review screenshot">
-          <img src="/assets/autoexp_demo.png" alt="Autoexp browser review showing experiment evidence and artifacts">
+        <button class="shot" type="button" data-image="/assets/review_image.png" aria-label="Zoom Autoexp browser review screenshot">
+          <img src="/assets/review_image.png" alt="Autoexp browser review showing experiment evidence and artifacts">
         </button>
         <span class="review-callout">Send follow-up to agent</span>
       </div>
@@ -151,7 +153,6 @@ codex plugin add autoexp@autoexp</pre>
       <h2>Organize and supercharge your AI-led experimentations</h2>
       <div>
         <a class="primary" href="#install">Install</a>
-        <a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
       </div>
     </section>
   </main>
@@ -159,7 +160,7 @@ codex plugin add autoexp@autoexp</pre>
   <footer class="shell">
     <a class="brand" href="#">auto<span>exp</span></a>
     <p>Local autonomous experimentation.</p>
-    <div><a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a><a href="https://github.com/shreyashkar-ml/autoexp/blob/main/LICENSE">Apache 2.0</a></div>
+    <div><a href="https://github.com/shreyashkar-ml/autoexp/blob/main/LICENSE">Apache 2.0</a></div>
   </footer>
 
   <dialog class="lightbox" aria-label="Expanded screenshot">
@@ -194,6 +195,7 @@ codex plugin add autoexp@autoexp</pre>
     const note = document.querySelector("#agent-note");
     const command = document.querySelector("#agent-command");
     const agentCopy = document.querySelector("#agent-copy");
+    const githubStars = document.querySelector("#github-stars");
     const lightbox = document.querySelector(".lightbox");
     const lightboxImage = lightbox.querySelector("img");
     const workflows = {
@@ -208,6 +210,11 @@ codex plugin add autoexp@autoexp</pre>
         ["Send one feedback batch", "Your scoped notes return directly to the agent and it resumes."]
       ]
     };
+
+    fetch("https://api.github.com/repos/shreyashkar-ml/autoexp")
+      .then(response => response.json())
+      .then(repo => githubStars.textContent = repo.stargazers_count ?? githubStars.textContent)
+      .catch(() => {});
 
     document.querySelectorAll(".agent-tab").forEach(tab => tab.addEventListener("click", () => {
       document.querySelectorAll(".agent-tab").forEach(item => {

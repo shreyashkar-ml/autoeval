@@ -10,6 +10,7 @@ on:
       - CNAME
       - assets/agents/**
       - assets/autoexp_demo.png
+      - assets/review_image.png
       - assets/autoresearch_demo.png
       - .github/workflows/pages.yml
   workflow_dispatch:
@@ -35,7 +36,7 @@ jobs:
       - run: |
           mkdir -p _site/assets/agents
           cp index.html style.css install.sh CNAME _site/
-          cp assets/autoexp_demo.png assets/autoresearch_demo.png _site/assets/
+          cp assets/autoexp_demo.png assets/review_image.png assets/autoresearch_demo.png _site/assets/
           cp assets/agents/* _site/assets/agents/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4

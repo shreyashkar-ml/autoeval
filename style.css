@@ -11,6 +11,7 @@
   --line-strong: #383835;
   --accent: #62a7ff;
   --accent-soft: rgb(98 167 255 / .1);
+  --terminal-accent: #5eead4;
   --radius: 4px;
   --mono: "SFMono-Regular", "Cascadia Code", "Liberation Mono", Consolas, monospace;
   --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -46,10 +47,26 @@ button { font: inherit; }
 }
 .brand { font: 800 21px/1 var(--mono); letter-spacing: -.08em; }
 .brand span { color: var(--accent); }
-.nav nav { display: flex; gap: 24px; color: var(--muted); font: 11px/1 var(--mono); }
-.nav a, footer a, .github-link, .cta a { transition: color .16s ease, transform .16s ease; }
-.nav a:hover, footer a:hover, .github-link:hover, .cta a:not(.primary):hover { color: var(--ink); }
-.nav a:active, footer a:active, .github-link:active, .cta a:active { transform: translateY(1px); }
+.nav nav { display: flex; align-items: center; gap: 24px; color: var(--muted); font: 11px/1 var(--mono); }
+.nav-github {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  background: var(--panel);
+}
+.nav-github img { width: 16px; height: 16px; }
+.nav-github b { color: inherit; font-weight: 500; }
+.nav a, footer a, .cta a { transition: color .16s ease, transform .16s ease; }
+.nav a:hover, footer a:hover { color: var(--ink); }
+.nav .nav-github:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.nav a:active, footer a:active, .cta a:active { transform: translateY(1px); }
 .column { border-inline: 1px solid var(--line); }
 
 .hero, .promise, .workflow-feature, .how, .archive, .cta { padding-inline: 44px; }
@@ -125,7 +142,7 @@ h1 em { color: var(--accent); font-style: normal; }
   background: var(--panel-deep);
   overflow: hidden;
 }
-.command > span { padding-left: 14px; color: var(--accent); font: 12px/1 var(--mono); }
+.command > span { padding-left: 14px; color: var(--terminal-accent); font: 12px/1 var(--mono); }
 .command code {
   min-width: 0;
   padding: 13px 10px;
@@ -174,18 +191,10 @@ h1 em { color: var(--accent); font-style: normal; }
   margin: 0;
   padding: 12px 14px;
   overflow-x: auto;
-  color: var(--accent);
+  color: var(--terminal-accent);
   font: 10px/1.55 var(--mono);
   white-space: pre-wrap;
 }
-.github-link {
-  display: inline-block;
-  margin-top: 13px;
-  color: var(--muted);
-  border-bottom: 1px solid var(--line-strong);
-  font: 10px/1.5 var(--mono);
-}
-
 .promise {
   padding-top: 30px;
   padding-bottom: 32px;
@@ -208,7 +217,7 @@ h1 em { color: var(--accent); font-style: normal; }
 }
 .workflow-line li { min-width: 0; padding: 2px 18px; border-left: 1px solid var(--line-strong); }
 .workflow-line li:first-child { padding-left: 0; border-left: 0; }
-.workflow-line b { display: block; color: var(--accent); font: 11px/1.2 var(--mono); }
+.workflow-line b { display: block; color: var(--terminal-accent); font: 11px/1.2 var(--mono); }
 .workflow-line span { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.4; }
 
 .workflow-feature {
@@ -223,7 +232,7 @@ h1 em { color: var(--accent); font-style: normal; }
 }
 .workflow-feature.reverse { grid-template-columns: 1.28fr .72fr; }
 .command-label { display: flex; align-items: baseline; gap: 10px; color: var(--muted); font: 11px/1.2 var(--mono); }
-.command-label code { color: var(--accent); font: inherit; }
+.command-label code { color: var(--terminal-accent); font: inherit; }
 .feature-copy h2, .how-heading h2, .cta h2 {
   margin: 15px 0 20px;
   font-size: clamp(34px, 4vw, 48px);
@@ -398,7 +407,7 @@ h1 em { color: var(--accent); font-style: normal; }
   padding: 14px 16px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  color: var(--accent);
+  color: var(--terminal-accent);
   background: var(--panel-deep);
   font: 12px/1 var(--mono);
 }
