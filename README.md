@@ -48,7 +48,7 @@ Autoexp exposes two agent workflows:
 | Workflow | Codex | Claude Code | OpenCode | Pi |
 | --- | --- | --- | --- | --- |
 | Start or continue experiments | `$autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` |
-| Open browser feedback review | `$autoexp-review [experiment-id]` | `/autoexp-review` | `/autoexp-review [experiment-id]` | `/autoexp-review [experiment-id]` |
+| Open browser feedback review | `$autoexp-review` | `/autoexp-review` | `/autoexp-review` | `/autoexp-review` |
 
 ### Start experimenting in your repository
 
