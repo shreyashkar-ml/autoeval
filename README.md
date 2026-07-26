@@ -17,7 +17,7 @@ Explore the workflow and installation options at [autoexp.dev](https://autoexp.d
       <p>Compare variants, inspect immutable evidence, and turn results into a clear recommendation.</p>
     </td>
     <td width="64%">
-      <img src="assets/autoexp_demo.png?v=20260726" alt="Autoexp dashboard showing experiment variants, immutable run evidence, milestones, and the project report">
+      <img src="assets/readme-standard.webp?v=20260727" alt="Autoexp dashboard showing experiment variants, immutable run evidence, milestones, and the project report">
     </td>
   </tr>
   <tr>
@@ -26,7 +26,7 @@ Explore the workflow and installation options at [autoexp.dev](https://autoexp.d
       <p>Optimize a measurable objective with a frozen evaluator and a keep-or-revert loop.</p>
     </td>
     <td width="64%">
-      <img src="assets/autoresearch_demo.png?v=20260726" alt="Autoexp Autoresearch dashboard showing the scored loop, final state, and attempt ledger">
+      <img src="assets/readme-autoresearch.webp?v=20260727" alt="Autoexp Autoresearch dashboard showing the scored loop, final state, and attempt ledger">
     </td>
   </tr>
 </table>
@@ -82,6 +82,10 @@ The review command opens a local browser session immediately. You can inspect
 source, rendered artifacts, CSV tables, images, logs, reports, and diffs.
 Add notes and submit one feedback batch. Your agent receives it and continues
 the experiment.
+
+<p align="center">
+  <img src="assets/readme-review.webp?v=20260727" alt="Autoexp review showing experiment evidence, the waiting agent state, and the feedback composer" width="100%">
+</p>
 
 ### Dashboard view
 
