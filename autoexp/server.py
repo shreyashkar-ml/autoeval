@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 from urllib.request import urlopen
 
+from . import __version__
 from .artifacts import artifact_content, artifact_detail, artifact_file, list_artifacts, read_log
 from .reports import list_documents, list_milestones, read_project_report, write_report_instruction
 from .review import review_session, submit_review
@@ -114,7 +115,7 @@ class AutoexpHTTPServer(ThreadingHTTPServer):
 
 
 class AutoexpHandler(BaseHTTPRequestHandler):
-    server_version = "AutoexpHTTP/0.3"
+    server_version = f"AutoexpHTTP/{__version__}"
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -148,7 +149,7 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
         path = parsed.path
         if path == "/api/health":
-            return self._json({"ok": True, "version": "0.3"})
+            return self._json({"ok": True, "version": __version__})
         if path == "/api/registry":
             stats = _run_stats()
             repos = registry()
@@ -231,7 +232,9 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             return self._json({"error": "body must be an object"}, 400)
         if path == "/api/review/submit":
-            return self._json({"session": submit_review(body.get("token"), body.get("notes"))})
+            return self._json({"session": submit_review(
+                body.get("token"), body.get("notes"), body.get("decision")
+            )})
         parts = [unquote(part) for part in path.removeprefix("/api/").split("/") if part]
         if len(parts) == 3 and parts[0] == "experiments" and parts[2] == "report-guidance":
             return self._json(write_report_instruction(body.get("text"), resolve_root(parts[1])))
@@ -388,7 +391,7 @@ def _healthy(host, port):
     try:
         with urlopen(f"{_server_url(host, port)}/api/health", timeout=0.5) as response:
             data = json.load(response)
-            return data.get("ok") is True and data.get("version") == "0.3"
+            return data.get("ok") is True and data.get("version") == __version__
     except Exception:
         return False
 

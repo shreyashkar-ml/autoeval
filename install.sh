@@ -3,100 +3,173 @@ set -euo pipefail
 
 source_dir="${AUTOEXP_SOURCE_DIR:-}"
 skip_runtime="${AUTOEXP_SKIP_RUNTIME:-0}"
-commands=(awk install)
-[[ -z "$source_dir" ]] && commands+=(curl git)
-[[ "$skip_runtime" != 1 ]] && commands+=(uv)
-for command in "${commands[@]}"; do
-  command -v "$command" >/dev/null || {
-    echo "autoexp installer requires $command" >&2
-    exit 1
-  }
-done
+uninstall="${AUTOEXP_UNINSTALL:-0}"
+[[ "${1:-}" == "--uninstall" ]] && uninstall=1
+
+command -v install >/dev/null || { echo "autoexp installer requires install" >&2; exit 1; }
+[[ -z "$source_dir" ]] && command -v curl >/dev/null || true
+[[ "$skip_runtime" == 1 ]] || command -v uv >/dev/null || {
+  echo "autoexp installer requires uv" >&2
+  exit 1
+}
+
+codex_home="${CODEX_HOME:-$HOME/.codex}"
+claude_home="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+opencode_home="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+pi_home="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+
+if [[ "$uninstall" == 1 ]]; then
+  command -v codex >/dev/null && codex plugin remove autoexp@autoexp >/dev/null 2>&1 || true
+  command -v codex >/dev/null && codex plugin marketplace remove autoexp >/dev/null 2>&1 || true
+  command -v claude >/dev/null && claude plugin uninstall autoexp@autoexp >/dev/null 2>&1 || true
+  command -v claude >/dev/null && claude plugin marketplace remove autoexp >/dev/null 2>&1 || true
+  command -v pi >/dev/null && PI_CODING_AGENT_DIR="$pi_home" pi remove "$pi_home/autoexp-extension" >/dev/null 2>&1 || true
+  rm -rf \
+    "$codex_home/autoexp-marketplace" \
+    "$claude_home/autoexp-marketplace" \
+    "$claude_home/skills/autoexp" \
+    "$claude_home/skills/autoexp-review" \
+    "$opencode_home/plugins/autoexp" \
+    "$opencode_home/plugins/autoexp-native" \
+    "$pi_home/autoexp-extension"
+  rm -f \
+    "$opencode_home/commands/autoexp.md" \
+    "$opencode_home/commands/autoexp-review.md" \
+    "$opencode_home/plugins/autoexp.ts" \
+    "$opencode_home/agents/autoexp.md" \
+    "$pi_home/prompts/autoexp.md" \
+    "$pi_home/prompts/autoexp-review.md"
+  [[ "$skip_runtime" == 1 ]] || uv tool uninstall autoexp >/dev/null 2>&1 || true
+  echo "Uninstalled Autoexp-owned runtime and adapter files; unrelated host configuration was left unchanged."
+  exit 0
+fi
 
 repo="https://github.com/shreyashkar-ml/autoexp"
 ref="${AUTOEXP_REF:-main}"
-if [[ -z "$source_dir" ]]; then
-  if [[ "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
-    ref="${ref,,}"
-  else
-    ref="$(
-      git ls-remote "${repo}.git" "$ref" "refs/heads/$ref" "refs/tags/$ref^{}" "refs/tags/$ref" |
-        awk '$2 ~ /\^\{\}$/ { print $1; found=1; exit } !found && !commit { commit=$1 } END { if (!found) print commit }'
-    )"
-    [[ -n "$ref" ]] || {
-      echo "autoexp installer could not resolve AUTOEXP_REF" >&2
-      exit 1
-    }
-  fi
-fi
-raw="https://raw.githubusercontent.com/shreyashkar-ml/autoexp/${ref}"
 tmp="$(mktemp -d)"
-trap "rm -rf \"$tmp\"" EXIT
+trap 'rm -rf "$tmp"' EXIT
 
-for skill in autoexp autoexp-review; do
-  mkdir -p "$tmp/$skill/agents"
-  if [[ -n "$source_dir" ]]; then
-    install -m 0644 "$source_dir/plugins/autoexp/skills/$skill/SKILL.md" "$tmp/$skill/SKILL.md"
-    install -m 0644 "$source_dir/plugins/autoexp/skills/$skill/agents/openai.yaml" "$tmp/$skill/agents/openai.yaml"
-  else
-    curl -fsSL "$raw/plugins/autoexp/skills/$skill/SKILL.md" -o "$tmp/$skill/SKILL.md"
-    curl -fsSL "$raw/plugins/autoexp/skills/$skill/agents/openai.yaml" -o "$tmp/$skill/agents/openai.yaml"
-  fi
-done
-
-mkdir -p "$tmp/opencode/commands" "$tmp/opencode/agents" "$tmp/pi"
-for command in autoexp autoexp-review; do
-  if [[ -n "$source_dir" ]]; then
-    install -m 0644 "$source_dir/adapters/opencode/commands/$command.md" "$tmp/opencode/commands/$command.md"
-    install -m 0644 "$source_dir/adapters/pi/prompts/$command.md" "$tmp/pi/$command.md"
-  else
-    curl -fsSL "$raw/adapters/opencode/commands/$command.md" -o "$tmp/opencode/commands/$command.md"
-    curl -fsSL "$raw/adapters/pi/prompts/$command.md" -o "$tmp/pi/$command.md"
-  fi
-done
-if [[ -n "$source_dir" ]]; then
-  install -m 0644 "$source_dir/adapters/opencode/agents/autoexp.md" "$tmp/opencode/agents/autoexp.md"
-else
-  curl -fsSL "$raw/adapters/opencode/agents/autoexp.md" -o "$tmp/opencode/agents/autoexp.md"
+if [[ -z "$source_dir" ]]; then
+  raw="https://raw.githubusercontent.com/shreyashkar-ml/autoexp/$ref"
+  source_dir="$tmp/source"
+  files=(
+    .agents/plugins/marketplace.json
+    .claude-plugin/marketplace.json
+    adapters/claude/.claude-plugin/plugin.json
+    adapters/claude/hooks/hooks.json
+    adapters/claude/skills/autoexp/SKILL.md
+    adapters/claude/skills/autoexp-review/SKILL.md
+    adapters/codex/.codex-plugin/plugin.json
+    adapters/codex/hooks/hooks.json
+    adapters/codex/skills/autoexp/SKILL.md
+    adapters/codex/skills/autoexp/agents/openai.yaml
+    adapters/codex/skills/autoexp-review/SKILL.md
+    adapters/codex/skills/autoexp-review/agents/openai.yaml
+    adapters/opencode-plugin/package.json
+    adapters/opencode-plugin/index.ts
+    adapters/opencode-plugin/bridge.ts
+    adapters/opencode-plugin/loader.ts
+    adapters/opencode-plugin/commands/autoexp.md
+    adapters/opencode-plugin/commands/autoexp-review.md
+    adapters/pi-extension/package.json
+    adapters/pi-extension/index.ts
+    adapters/pi-extension/bridge.ts
+  )
+  for file in "${files[@]}"; do
+    mkdir -p "$source_dir/$(dirname "$file")"
+    curl -fsSL "$raw/$file" -o "$source_dir/$file"
+  done
 fi
 
 if [[ "$skip_runtime" != 1 ]]; then
-  if [[ -n "$source_dir" ]]; then
-    uv tool install --force --no-cache "$source_dir"
-  else
+  if [[ "$source_dir" == "$tmp/source" ]]; then
     uv tool install --force "git+${repo}.git@${ref}"
+  else
+    uv tool install --force --no-cache "$source_dir"
   fi
 fi
 
-codex_skills="${AUTOEXP_CODEX_SKILLS_DIR:-$HOME/.agents/skills}"
-claude_skills="${AUTOEXP_CLAUDE_SKILLS_DIR:-${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills}"
-for root in "$codex_skills" "$claude_skills"; do
-  for skill in autoexp autoexp-review; do
-    mkdir -p "$root/$skill/agents"
-    install -m 0644 "$tmp/$skill/SKILL.md" "$root/$skill/SKILL.md"
-    install -m 0644 "$tmp/$skill/agents/openai.yaml" "$root/$skill/agents/openai.yaml"
-  done
-done
+statuses=()
 
-# Claude should never open the blocking review unless the user invokes it.
-awk "1; /^description:/ { print \"disable-model-invocation: true\" }" \
-  "$tmp/autoexp-review/SKILL.md" > "$claude_skills/autoexp-review/SKILL.md"
-chmod 0644 "$claude_skills/autoexp-review/SKILL.md"
+if command -v codex >/dev/null; then
+  marketplace_root="$codex_home/autoexp-marketplace"
+  mkdir -p "$marketplace_root/.agents/plugins" "$marketplace_root/adapters/codex"
+  install -m 0644 "$source_dir/.agents/plugins/marketplace.json" \
+    "$marketplace_root/.agents/plugins/marketplace.json"
+  cp -R "$source_dir/adapters/codex/." "$marketplace_root/adapters/codex/"
+  installed_marketplace="$(
+    codex plugin marketplace list 2>/dev/null |
+      sed -n 's/^autoexp[[:space:]]*//p' |
+      head -n 1
+  )"
+  if [[ -n "$installed_marketplace" && "$installed_marketplace" != "$marketplace_root" ]]; then
+    codex plugin remove autoexp@autoexp >/dev/null 2>&1 || true
+    codex plugin marketplace remove autoexp >/dev/null
+    installed_marketplace=""
+  fi
+  if [[ -z "$installed_marketplace" ]]; then
+    codex plugin marketplace add "$marketplace_root" >/dev/null
+  fi
+  codex plugin remove autoexp@autoexp >/dev/null 2>&1 || true
+  if codex plugin add autoexp@autoexp --json >/dev/null 2>&1; then
+    statuses+=("Codex: Integrated (\$autoexp, \$autoexp-review)")
+  else
+    statuses+=("Codex: Compatible; run: codex plugin add autoexp@autoexp")
+  fi
+else
+  statuses+=("Codex: skipped (not installed)")
+fi
 
-opencode_commands="${AUTOEXP_OPENCODE_COMMANDS_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode/commands}"
-opencode_agents="${AUTOEXP_OPENCODE_AGENTS_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/opencode/agents}"
-pi_prompts="${AUTOEXP_PI_PROMPTS_DIR:-${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/prompts}"
-mkdir -p "$opencode_commands" "$opencode_agents" "$pi_prompts"
-for command in autoexp autoexp-review; do
-  install -m 0644 "$tmp/opencode/commands/$command.md" "$opencode_commands/$command.md"
-  install -m 0644 "$tmp/pi/$command.md" "$pi_prompts/$command.md"
-done
-install -m 0644 "$tmp/opencode/agents/autoexp.md" "$opencode_agents/autoexp.md"
+if command -v claude >/dev/null; then
+  claude_marketplace="$claude_home/autoexp-marketplace"
+  mkdir -p "$claude_marketplace/.claude-plugin" "$claude_marketplace/adapters/claude"
+  install -m 0644 "$source_dir/.claude-plugin/marketplace.json" \
+    "$claude_marketplace/.claude-plugin/marketplace.json"
+  cp -R "$source_dir/adapters/claude/." "$claude_marketplace/adapters/claude/"
+  mkdir -p "$claude_home/skills/autoexp" "$claude_home/skills/autoexp-review"
+  install -m 0644 "$source_dir/adapters/claude/skills/autoexp/SKILL.md" \
+    "$claude_home/skills/autoexp/SKILL.md"
+  install -m 0644 "$source_dir/adapters/claude/skills/autoexp-review/SKILL.md" \
+    "$claude_home/skills/autoexp-review/SKILL.md"
+  claude plugin marketplace add "$claude_marketplace" >/dev/null 2>&1 || true
+  claude plugin install autoexp@autoexp >/dev/null 2>&1 || true
+  statuses+=("Claude Code: Experimental native adapter (/autoexp, /autoexp-review); reload required")
+else
+  statuses+=("Claude Code: skipped (not installed)")
+fi
 
-printf "%s\n" \
-  "Installed Autoexp and its agent commands." \
-  "Codex: \$autoexp, \$autoexp-review" \
-  "Claude Code: /autoexp, /autoexp-review" \
-  "OpenCode: /autoexp, /autoexp-review" \
-  "Pi: /autoexp, /autoexp-review" \
-  "Restart your agent to load the skills."
+if command -v opencode >/dev/null; then
+  mkdir -p "$opencode_home/plugins/autoexp-native" "$opencode_home/commands"
+  install -m 0644 "$source_dir/adapters/opencode-plugin/loader.ts" \
+    "$opencode_home/plugins/autoexp.ts"
+  install -m 0644 "$source_dir/adapters/opencode-plugin/index.ts" \
+    "$opencode_home/plugins/autoexp-native/plugin.ts"
+  install -m 0644 "$source_dir/adapters/opencode-plugin/bridge.ts" \
+    "$opencode_home/plugins/autoexp-native/bridge.ts"
+  install -m 0644 "$source_dir/adapters/opencode-plugin/commands/"*.md \
+    "$opencode_home/commands/"
+  rm -rf "$opencode_home/plugins/autoexp"
+  rm -f "$opencode_home/agents/autoexp.md"
+  statuses+=("OpenCode: Integrated (/autoexp, /autoexp-review)")
+else
+  statuses+=("OpenCode: skipped (not installed)")
+fi
+
+if command -v pi >/dev/null; then
+  pi_extension="$pi_home/autoexp-extension"
+  mkdir -p "$pi_extension"
+  cp -R "$source_dir/adapters/pi-extension/." "$pi_extension/"
+  if PI_CODING_AGENT_DIR="$pi_home" pi install "$pi_extension" >/dev/null &&
+     PI_CODING_AGENT_DIR="$pi_home" pi list 2>/dev/null | grep -Fq autoexp; then
+    PI_CODING_AGENT_DIR="$pi_home" \
+      pi remove "$source_dir/adapters/pi-extension" >/dev/null 2>&1 || true
+    rm -f "$pi_home/prompts/autoexp.md" "$pi_home/prompts/autoexp-review.md"
+    statuses+=("Pi: Integrated (/autoexp, /autoexp-review)")
+  else
+    statuses+=("Pi: Compatible; native extension install failed, existing prompts were preserved")
+  fi
+else
+  statuses+=("Pi: skipped (not installed)")
+fi
+
+printf '%s\n' "Installed Autoexp runtime and detected host adapters." "${statuses[@]}"

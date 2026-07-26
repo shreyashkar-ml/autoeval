@@ -8,7 +8,7 @@
       "name": "autoexp",
       "source": {
         "source": "local",
-        "path": "./plugins/autoexp"
+        "path": "./adapters/codex"
       },
       "policy": {
         "installation": "AVAILABLE",

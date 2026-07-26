@@ -22,14 +22,14 @@ def create_review_session(root=None, *, ttl=900):
         "session_id": f"review_{uuid.uuid4().hex}", "experiment_id": experiment_id(root),
         "token_hash": _hash(token), "status": "waiting",
         "expires_at": int(time.time()) + ttl, "notes": "[]",
-        "created_at": now(), "completed_at": None,
+        "created_at": now(), "completed_at": None, "decision": None,
     }
     conn = db()
     conn.execute(
         """insert into review_sessions(session_id, experiment_id, token_hash, status,
-             expires_at, notes, created_at, completed_at)
+             expires_at, notes, created_at, completed_at, decision)
            values(:session_id, :experiment_id, :token_hash, :status,
-             :expires_at, :notes, :created_at, :completed_at)""",
+             :expires_at, :notes, :created_at, :completed_at, :decision)""",
         session,
     )
     conn.commit()
@@ -55,9 +55,41 @@ def review_session(token):
     return value
 
 
-def submit_review(token, notes):
-    if not isinstance(notes, list) or not notes:
-        raise ValueError("review notes must be a non-empty list")
+def review_session_by_id(session_id):
+    conn = db()
+    row = conn.execute(
+        "select * from review_sessions where session_id = ?", (session_id,)
+    ).fetchone()
+    if row and row["status"] == "waiting" and row["expires_at"] <= int(time.time()):
+        conn.execute(
+            "update review_sessions set status = 'expired' where session_id = ? and status = 'waiting'",
+            (session_id,),
+        )
+        conn.commit()
+        row = conn.execute(
+            "select * from review_sessions where session_id = ?", (session_id,)
+        ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    value = dict(row)
+    value["notes"] = json.loads(value["notes"])
+    value.pop("token_hash", None)
+    return value
+
+
+def submit_review(token, notes=None, decision=None):
+    legacy = decision is None
+    decision = "feedback" if legacy else decision
+    notes = [] if notes is None else notes
+    if decision not in {"approved", "feedback", "dismissed"}:
+        raise ValueError("review decision must be approved, feedback, or dismissed")
+    if not isinstance(notes, list):
+        raise ValueError("review notes must be a list")
+    if decision == "feedback" and not notes:
+        raise ValueError("feedback requires at least one review note")
+    if decision == "dismissed" and notes:
+        raise ValueError("dismissed review cannot include notes")
     clean = []
     for note in notes[:50]:
         if not isinstance(note, dict):
@@ -94,9 +126,10 @@ def submit_review(token, notes):
         conn.close()
         raise ValueError("review session is no longer accepting feedback")
     cursor = conn.execute(
-        """update review_sessions set status = 'completed', notes = ?, completed_at = ?
+        """update review_sessions
+           set status = 'completed', notes = ?, completed_at = ?, decision = ?
            where session_id = ? and status = 'waiting'""",
-        (json.dumps(clean), now(), row["session_id"]),
+        (json.dumps(clean), now(), decision, row["session_id"]),
     )
     if cursor.rowcount != 1:
         conn.rollback()
@@ -115,3 +148,13 @@ def wait_for_review(token, *, timeout=900, interval=0.25):
             return session
         time.sleep(interval)
     return review_session(token)
+
+
+def wait_for_review_session(session_id, *, timeout=900, interval=0.25):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        session = review_session_by_id(session_id)
+        if not session or session["status"] != "waiting":
+            return session
+        time.sleep(interval)
+    return review_session_by_id(session_id)

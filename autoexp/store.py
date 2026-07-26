@@ -23,7 +23,7 @@ SCHEMA = """
 pragma foreign_keys = on;
 create table if not exists schema_metadata(schema_version integer not null);
 insert into schema_metadata(schema_version)
-select 1 where not exists(select 1 from schema_metadata);
+select 2 where not exists(select 1 from schema_metadata);
 
 create table if not exists repositories(
   repo_id text primary key, title text not null, path text not null unique,
@@ -119,8 +119,39 @@ create table if not exists review_sessions(
   token_hash text not null unique,
   status text not null check(status in ('waiting', 'completed', 'expired')),
   expires_at integer not null, notes text not null default '[]' check(json_valid(notes)),
-  created_at text not null, completed_at text
+  created_at text not null, completed_at text,
+  decision text check(decision in ('approved', 'feedback', 'dismissed'))
 );
+create table if not exists agent_bindings(
+  binding_id text primary key,
+  agent text not null,
+  host_session_id text not null,
+  repo_id text not null references repositories(repo_id),
+  experiment_id text references experiments(experiment_id),
+  state text not null check(state in ('active', 'ended')),
+  created_at text not null,
+  updated_at text not null,
+  unique(agent, host_session_id)
+);
+create table if not exists agent_operations(
+  operation_id text primary key,
+  binding_id text not null references agent_bindings(binding_id),
+  kind text not null check(kind in ('experiment', 'review')),
+  state text not null check(
+    state in ('starting', 'waiting', 'completed', 'dismissed',
+              'expired', 'canceled', 'failed')
+  ),
+  review_session_id text references review_sessions(session_id),
+  request_id text,
+  result text not null default '{}' check(json_valid(result)),
+  error text,
+  created_at text not null,
+  updated_at text not null
+);
+create index if not exists idx_agent_bindings_lookup
+on agent_bindings(agent, host_session_id, updated_at desc);
+create index if not exists idx_agent_operations_binding
+on agent_operations(binding_id, created_at desc);
 create table if not exists research_contracts(
   contract_id text primary key,
   experiment_id text not null references experiments(experiment_id),
@@ -224,6 +255,53 @@ _INITIALIZED_DATABASES = set()
 _SCHEMA_LOCK = threading.Lock()
 
 
+def _migrate(conn):
+    version = conn.execute("select schema_version from schema_metadata").fetchone()[0]
+    if version < 2:
+        columns = {
+            row["name"] for row in conn.execute("pragma table_info(review_sessions)")
+        }
+        if "decision" not in columns:
+            conn.execute(
+                """alter table review_sessions add column decision text
+                   check(decision in ('approved', 'feedback', 'dismissed'))"""
+            )
+        conn.executescript("""
+          create table if not exists agent_bindings(
+            binding_id text primary key,
+            agent text not null,
+            host_session_id text not null,
+            repo_id text not null references repositories(repo_id),
+            experiment_id text references experiments(experiment_id),
+            state text not null check(state in ('active', 'ended')),
+            created_at text not null,
+            updated_at text not null,
+            unique(agent, host_session_id)
+          );
+          create table if not exists agent_operations(
+            operation_id text primary key,
+            binding_id text not null references agent_bindings(binding_id),
+            kind text not null check(kind in ('experiment', 'review')),
+            state text not null check(
+              state in ('starting', 'waiting', 'completed', 'dismissed',
+                        'expired', 'canceled', 'failed')
+            ),
+            review_session_id text references review_sessions(session_id),
+            request_id text,
+            result text not null default '{}' check(json_valid(result)),
+            error text,
+            created_at text not null,
+            updated_at text not null
+          );
+          create index if not exists idx_agent_bindings_lookup
+          on agent_bindings(agent, host_session_id, updated_at desc);
+          create index if not exists idx_agent_operations_binding
+          on agent_operations(binding_id, created_at desc);
+        """)
+        conn.execute("update schema_metadata set schema_version = 2")
+        conn.commit()
+
+
 def db(root=None):
     path = user_data_dir() / "state.sqlite"
     private_dir(path.parent)
@@ -238,6 +316,7 @@ def db(root=None):
         if path not in _INITIALIZED_DATABASES:
             conn.execute("pragma journal_mode = wal")
             conn.executescript(SCHEMA)
+            _migrate(conn)
             _INITIALIZED_DATABASES.add(path)
     try:
         path.chmod(0o600)

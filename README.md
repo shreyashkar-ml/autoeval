@@ -39,36 +39,54 @@ First, install the runtime:
 curl -fsSL https://autoexp.dev/install.sh | bash
 ```
 
-Then choose your agent and install its plugin:
+The installer detects installed hosts and adds their native adapter without
+rewriting unrelated configuration. Restart the host after installation.
 
 <details>
 <summary>Codex</summary>
 
-```bash
-codex plugin marketplace add shreyashkar-ml/autoexp
-codex plugin add autoexp@autoexp
-```
+The installer registers the Autoexp marketplace and plugin. Codex exposes
+`$autoexp` and `$autoexp-review`; its prompt hook opens review before the first
+model request.
 </details>
 
 <details>
 <summary>Claude</summary>
 
-```bash
-claude plugin marketplace add shreyashkar-ml/autoexp
-claude plugin install autoexp@autoexp
-```
+The installer adds the plugin and bare user skills. Claude uses pre-model
+dynamic context for `/autoexp-review`.
+
+Claude's adapter is currently **Compatible / experimental** until the real-host
+acceptance matrix passes on a machine with Claude Code installed.
 </details>
 
-Restart your agent after plugin installation.
+<details>
+<summary>OpenCode</summary>
+
+The installer adds the native plugin and the two empty command-discovery stubs.
+The plugin suppresses command expansion and routes feedback to the originating
+OpenCode session.
+
+Restart OpenCode, then run `/autoexp <objective>`.
+</details>
+
+<details>
+<summary>Pi</summary>
+
+The installer adds the native Pi extension. It owns both commands, persisted
+operation recovery, and same-session follow-up delivery.
+
+Restart Pi, then run `/autoexp <objective>`.
+</details>
 
 ## Use Autoexp from your agent
 
 Autoexp exposes two agent workflows:
 
-| Workflow | Codex | Claude Code |
-| --- | --- | --- |
-| Start or continue experiments | `$autoexp <objective>` | `/autoexp <objective>` |
-| Open browser feedback review | `$autoexp-review` | `/autoexp-review` |
+| Workflow | Codex | Claude Code | OpenCode | Pi |
+| --- | --- | --- | --- | --- |
+| Start or continue experiments | `$autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` |
+| Open browser feedback review | `$autoexp-review [experiment-id]` | `/autoexp-review` | `/autoexp-review [experiment-id]` | `/autoexp-review [experiment-id]` |
 
 ### Open your existing repository and start experimentation or autoresearch loop with autoexp.
 
@@ -97,7 +115,9 @@ Invoke the review workflow when you want to inspect results or steer the next st
 /autoexp-review
 ```
 
-`/autoexp review` opens a short-lived local browser session and blocks the agent at the review boundary. You can inspect source, rendered artifacts, CSV tables, images, logs, reports, and diffs. 
+The native review command opens a short-lived local browser session before a
+model decides what to do. You can inspect source, rendered artifacts, CSV
+tables, images, logs, reports, and diffs.
 Attach feedbacks/notes and submit one structured feedback batch. Feedback returns directly to the agent for follow-up experimentation and result.
 
 ### Dashboard view

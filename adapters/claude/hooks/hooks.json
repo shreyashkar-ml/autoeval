@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "autoexp agent lifecycle --agent claude --event start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "autoexp agent lifecycle --agent claude --event shutdown",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

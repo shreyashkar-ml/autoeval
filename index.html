@@ -176,18 +176,18 @@ codex plugin add autoexp@autoexp</pre>
       },
       claude: {
         name: "Claude Code",
-        note: "Add the Autoexp plugin, then restart Claude Code.",
+        note: "Experimental adapter; real Claude Code acceptance is still pending.",
         command: "claude plugin marketplace add shreyashkar-ml/autoexp\nclaude plugin install autoexp@autoexp"
       },
       opencode: {
         name: "OpenCode",
-        note: "The runtime installer already added the command and agent.",
-        command: "Restart OpenCode, then run  /autoexp <objective>"
+        note: "The installer adds Autoexp’s native OpenCode plugin.",
+        command: "Restart OpenCode, then run /autoexp <objective>"
       },
       pi: {
         name: "Pi",
-        note: "The runtime installer already added the prompt.",
-        command: "Restart Pi, then run  /autoexp <objective>"
+        note: "The installer registers Autoexp’s native Pi extension.",
+        command: "Restart Pi, then run /autoexp <objective>"
       }
     };
     const name = document.querySelector("#agent-name");

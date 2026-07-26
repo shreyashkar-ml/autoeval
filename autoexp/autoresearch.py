@@ -590,7 +590,7 @@ class AutoResearch:
                 "research attempt owner is no longer running",
             )
 
-    def begin_attempt(self, hypothesis):
+    def begin_attempt(self, hypothesis, provenance=None):
         from .execution import execute
         from .provenance import create_trigger
         from .snapshots import capture_workspace
@@ -661,10 +661,15 @@ class AutoResearch:
             run = execute(
                 root=self.dir,
                 snapshot_id=candidate["snapshot_id"],
-                trigger_kind="autoresearch",
-                actor_name="autoexp-autoresearch",
-                session_id=session["session_id"] if session else None,
-                request_id=key,
+                trigger_kind="agent" if provenance else "autoresearch",
+                actor_name=(
+                    provenance["actor_name"] if provenance else "autoexp-autoresearch"
+                ),
+                session_id=(
+                    provenance["session_id"] if provenance
+                    else session["session_id"] if session else None
+                ),
+                request_id=provenance["request_id"] if provenance else key,
                 metadata={
                     "contract_id": contract["contract_id"],
                     "attempt_id": attempt_id,

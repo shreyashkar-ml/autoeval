@@ -59,6 +59,7 @@ def experiment_create_cmd(args):
         declare_file(entry["experiment_id"], files["human"], "supporting-source", description="research program")
         declare_file(entry["experiment_id"], files["frozen"], "frozen-evaluator", description="frozen evaluator")
     emit(_public_entry(entry), as_json=args.json)
+    return _public_entry(entry)
 
 
 def _public_entry(entry):
@@ -91,17 +92,35 @@ def print_run(run, root):
 def run_cmd(args):
     from .execution import execute
     root = selected(args)
-    run = execute(root=root, run_id=args.run_id, trigger_kind="agent" if args.agent else "cli", actor_name=args.actor, metadata={"title": args.title} if args.title else None)
+    binding = getattr(args, "_agent_binding", None)
+    run = execute(
+        root=root,
+        run_id=args.run_id,
+        trigger_kind="agent" if args.agent or binding else "cli",
+        actor_name=binding["agent"] if binding else args.actor,
+        session_id=binding["host_session_id"] if binding else None,
+        request_id=getattr(args, "_agent_request_id", None),
+        metadata={"title": args.title} if args.title else None,
+    )
     print_run(run, root)
     if run["status"] != "success":
         raise SystemExit(130 if run["status"] == "canceled" else (run.get("exit_code") or 1))
+    return run
 
 
 def snapshot_cmd(args):
     from .provenance import create_trigger
     from .snapshots import capture_workspace
     root = selected(args)
-    trigger = create_trigger("cli", root=root, actor_name="human", metadata={"operation": "snapshot"})
+    binding = getattr(args, "_agent_binding", None)
+    trigger = create_trigger(
+        "agent" if binding else "cli",
+        root=root,
+        actor_name=binding["agent"] if binding else "human",
+        session_id=binding["host_session_id"] if binding else None,
+        request_id=getattr(args, "_agent_request_id", None),
+        metadata={"operation": "snapshot"},
+    )
     emit(capture_workspace(root, label=args.label, created_by_trigger_id=trigger["trigger_id"]), as_json=True)
 
 
@@ -136,9 +155,12 @@ def document_add_cmd(args):
 
 
 def milestone_add_cmd(args):
+    binding = getattr(args, "_agent_binding", None)
     emit(mark_milestone(
         run_id=args.run_id, attempt_id=args.attempt_id, title=args.title,
-        significance=args.significance, actor_name=args.actor, root=selected(args),
+        significance=args.significance,
+        actor_name=binding["agent"] if binding else args.actor,
+        root=selected(args),
     ), as_json=True)
 
 
@@ -161,7 +183,86 @@ def review_cmd(args):
     result = wait_for_review(token, timeout=args.timeout)
     if not result or result["status"] != "completed":
         raise ValueError("review session expired before feedback was submitted")
-    emit({"session_id": result["session_id"], "notes": result["notes"]}, as_json=True)
+    emit({
+        "session_id": result["session_id"],
+        "decision": result["decision"],
+        "notes": result["notes"],
+    }, as_json=True)
+
+
+def agent_cmd(args):
+    from . import agent
+
+    operation = args.agent_operation
+    try:
+        if operation == "bind":
+            data = agent.bind(args.host_agent, args.session_id, args.repo, args.experiment)
+        elif operation == "context":
+            data = agent.context(args.host_agent, args.session_id, args.repo, args.objective)
+            if args.format == "prompt":
+                print(
+                    f"[AUTOEXP PROTOCOL v{agent.PROTOCOL_VERSION}]\n"
+                    f"Binding: {data['binding_id']}\n"
+                    f"Repository: {data['repository']['path']}\n"
+                    f"Objective: {data['objective'] or '(not supplied)'}\n"
+                    f"Command prefix: {' '.join(shlex.quote(part) for part in data['exec_argv_prefix'])}\n\n"
+                    f"{data['instruction']}"
+                )
+                return
+        elif operation == "exec":
+            argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+            data = agent.execute(args.binding_id, argv)
+        elif operation == "review.start":
+            data = agent.review_start(
+                args.host_agent, args.session_id, args.repo, args.experiment,
+                timeout=args.timeout, host=args.host, port=args.port,
+                open_browser=not args.no_open,
+            )
+        elif operation == "review.status":
+            data = agent.review_status(args.operation_id)
+        elif operation == "review.wait":
+            data = agent.review_wait(args.operation_id, args.timeout)
+        elif operation == "review.cancel":
+            data = agent.review_cancel(args.operation_id)
+        elif operation == "review.claude":
+            print(agent.review_for_host(
+                "claude", args.session_id, args.repo, timeout=args.timeout
+            ))
+            return
+        elif operation == "delivery":
+            data = agent.mark_delivered(args.operation_id, args.host_message_id)
+        elif operation == "lifecycle":
+            event = {}
+            if not args.session_id or not args.repo:
+                event = json.load(sys.stdin)
+            data = agent.lifecycle(
+                args.host_agent,
+                args.session_id or event.get("session_id"),
+                args.event,
+                args.repo or event.get("cwd"),
+            )
+            if event and not args.json:
+                return
+        elif operation == "hook":
+            data = agent.hook_event(args.host_agent, json.load(sys.stdin))
+            print(json.dumps(data))
+            return
+        else:
+            raise agent.AgentError("invalid_operation", f"Unknown operation: {operation}")
+        emit(agent.envelope(operation, data), as_json=True)
+    except agent.AgentError as exc:
+        if operation == "lifecycle" and not args.json:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1)
+        emit(agent.envelope(operation, error=exc), as_json=True)
+        raise SystemExit(1)
+    except (ValueError, FileNotFoundError) as exc:
+        if operation == "lifecycle" and not args.json:
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1)
+        wrapped = agent.AgentError("invalid_request", str(exc))
+        emit(agent.envelope(operation, error=wrapped), as_json=True)
+        raise SystemExit(1)
 
 
 def doctor_cmd(args):
@@ -215,7 +316,15 @@ def research_preflight_cmd(args):
 def research_attempt_cmd(args):
     from .autoresearch import for_project
     research = for_project(selected(args))
-    started = research.begin_attempt(args.hypothesis)
+    binding = getattr(args, "_agent_binding", None)
+    started = research.begin_attempt(
+        args.hypothesis,
+        provenance={
+            "actor_name": binding["agent"],
+            "session_id": binding["host_session_id"],
+            "request_id": getattr(args, "_agent_request_id", None),
+        } if binding else None,
+    )
     attempt = started["attempt"]
     if attempt["state"] == "running":
         attempt = research.finish_attempt(attempt["key"])
@@ -342,6 +451,68 @@ def build_parser():
     add_selector(review)
     review.set_defaults(fn=review_cmd)
 
+    agent = sub.add_parser("agent", help="native coding-agent integration protocol")
+    agent_sub = agent.add_subparsers(required=True)
+
+    bind_parser = agent_sub.add_parser("bind")
+    _agent_identity_args(bind_parser, experiment=True)
+    bind_parser.set_defaults(fn=agent_cmd, agent_operation="bind")
+
+    context_parser = agent_sub.add_parser("context")
+    _agent_identity_args(context_parser)
+    context_parser.add_argument("--objective", default="")
+    context_parser.add_argument("--format", choices=("json", "prompt"), default="json")
+    context_parser.set_defaults(fn=agent_cmd, agent_operation="context")
+
+    exec_parser = agent_sub.add_parser("exec")
+    exec_parser.add_argument("--binding-id", required=True)
+    exec_parser.add_argument("--json", action="store_true")
+    exec_parser.add_argument("argv", nargs=argparse.REMAINDER)
+    exec_parser.set_defaults(fn=agent_cmd, agent_operation="exec")
+
+    agent_review = agent_sub.add_parser("review")
+    agent_review_sub = agent_review.add_subparsers(required=True)
+    review_start_parser = agent_review_sub.add_parser("start")
+    _agent_identity_args(review_start_parser, experiment=True)
+    review_start_parser.add_argument("--timeout", type=int, default=900)
+    review_start_parser.add_argument("--host", default="127.0.0.1")
+    review_start_parser.add_argument("--port", type=int, default=8765)
+    review_start_parser.add_argument("--no-open", action="store_true", help=argparse.SUPPRESS)
+    review_start_parser.set_defaults(fn=agent_cmd, agent_operation="review.start")
+    for name in ("status", "cancel"):
+        child = agent_review_sub.add_parser(name)
+        child.add_argument("operation_id")
+        child.add_argument("--json", action="store_true")
+        child.set_defaults(fn=agent_cmd, agent_operation=f"review.{name}")
+    wait = agent_review_sub.add_parser("wait")
+    wait.add_argument("operation_id")
+    wait.add_argument("--timeout", type=int, default=900)
+    wait.add_argument("--json", action="store_true")
+    wait.set_defaults(fn=agent_cmd, agent_operation="review.wait")
+    claude = agent_review_sub.add_parser("claude")
+    claude.add_argument("--session-id", required=True)
+    claude.add_argument("--repo", required=True)
+    claude.add_argument("--timeout", type=int, default=900)
+    claude.set_defaults(fn=agent_cmd, agent_operation="review.claude")
+
+    delivery = agent_sub.add_parser("delivery")
+    delivery.add_argument("operation_id")
+    delivery.add_argument("--host-message-id")
+    delivery.add_argument("--json", action="store_true")
+    delivery.set_defaults(fn=agent_cmd, agent_operation="delivery")
+
+    lifecycle = agent_sub.add_parser("lifecycle")
+    lifecycle.add_argument("--agent", dest="host_agent", required=True)
+    lifecycle.add_argument("--session-id")
+    lifecycle.add_argument("--repo")
+    lifecycle.add_argument("--event", choices=("start", "resume", "shutdown"), required=True)
+    lifecycle.add_argument("--json", action="store_true")
+    lifecycle.set_defaults(fn=agent_cmd, agent_operation="lifecycle")
+
+    hook = agent_sub.add_parser("hook")
+    hook.add_argument("--agent", dest="host_agent", required=True)
+    hook.set_defaults(fn=agent_cmd, agent_operation="hook")
+
     research = sub.add_parser("research")
     research_sub = research.add_subparsers(required=True)
     for name, fn in (("state", research_state_cmd), ("preflight", research_preflight_cmd)):
@@ -367,6 +538,15 @@ def build_parser():
     sync.add_argument("--prune", action="store_true", help="permanently delete experiments whose working directory is missing")
     sync.set_defaults(fn=sync_cmd)
     return parser
+
+
+def _agent_identity_args(parser, *, experiment=False):
+    parser.add_argument("--agent", dest="host_agent", required=True)
+    parser.add_argument("--session-id", required=True)
+    parser.add_argument("--repo", required=True)
+    if experiment:
+        parser.add_argument("--experiment")
+    parser.add_argument("--json", action="store_true")
 
 
 def main():

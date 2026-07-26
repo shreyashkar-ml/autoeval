@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "autoexp",
-      "source": "./plugins/autoexp",
+      "source": "./adapters/claude",
       "description": "Run and review reproducible local experiments with Autoexp"
     }
   ]

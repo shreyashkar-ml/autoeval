@@ -1,0 +1,6 @@
+interface:
+  display_name: "Autoexp Review"
+  short_description: "Open native browser feedback review"
+  default_prompt: "Open the Autoexp browser review and continue from my decision."
+policy:
+  allow_implicit_invocation: false

@@ -140,4 +140,5 @@ export type ReviewSession = {
   status: "waiting" | "completed" | "expired";
   expires_at: number;
   notes: Array<{ scope: string; text: string }>;
+  decision: "approved" | "feedback" | "dismissed" | null;
 };

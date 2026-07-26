@@ -1,0 +1,12 @@
+{
+  "name": "autoexp",
+  "version": "0.4.0",
+  "description": "Native Autoexp experiment and browser review integration",
+  "author": {
+    "name": "Shreyashkar Sahu",
+    "url": "https://github.com/shreyashkar-ml"
+  },
+  "homepage": "https://autoexp.dev",
+  "repository": "https://github.com/shreyashkar-ml/autoexp",
+  "license": "Apache-2.0"
+}
