@@ -33,51 +33,13 @@ Explore the workflow and installation options at [autoexp.dev](https://autoexp.d
 
 ## Install and connect your agent
 
-First, install the runtime:
+Run:
 
 ```bash
 curl -fsSL https://autoexp.dev/install.sh | bash
 ```
 
-The installer detects installed hosts and adds their native adapter without
-rewriting unrelated configuration. Restart the host after installation.
-
-<details>
-<summary>Codex</summary>
-
-The installer registers the Autoexp marketplace and plugin. Codex exposes
-`$autoexp` and `$autoexp-review`; its prompt hook opens review before the first
-model request.
-</details>
-
-<details>
-<summary>Claude</summary>
-
-The installer adds the plugin and bare user skills. Claude uses pre-model
-dynamic context for `/autoexp-review`.
-
-Claude's adapter is currently **Compatible / experimental** until the real-host
-acceptance matrix passes on a machine with Claude Code installed.
-</details>
-
-<details>
-<summary>OpenCode</summary>
-
-The installer adds the native plugin and the two empty command-discovery stubs.
-The plugin suppresses command expansion and routes feedback to the originating
-OpenCode session.
-
-Restart OpenCode, then run `/autoexp <objective>`.
-</details>
-
-<details>
-<summary>Pi</summary>
-
-The installer adds the native Pi extension. It owns both commands, persisted
-operation recovery, and same-session follow-up delivery.
-
-Restart Pi, then run `/autoexp <objective>`.
-</details>
+Restart your coding agent, open a repository, and start with an objective.
 
 ## Use Autoexp from your agent
 
@@ -88,17 +50,18 @@ Autoexp exposes two agent workflows:
 | Start or continue experiments | `$autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` | `/autoexp <objective>` |
 | Open browser feedback review | `$autoexp-review [experiment-id]` | `/autoexp-review` | `/autoexp-review [experiment-id]` | `/autoexp-review [experiment-id]` |
 
-### Open your existing repository and start experimentation or autoresearch loop with autoexp.
+### Start experimenting in your repository
 
 ```text
 /autoexp Compare the cache strategies in this repository. Reuse the existing
 replay benchmark, preserve every run, and recommend a winner from the evidence.
 ```
 
-**autoexp** inspects the current worktree, understand the experiment objective, use existing resources relevant to experimentations, and builds on top of it.
+**Autoexp** understands the objective, works with the code, data, and evaluators
+already in your repository, and preserves every result.
 
 ```text
-You define the objective and harness boundaries
+You define the objective and success criteria
           ↓
 Your agent proposes a focused repository change
           ↓
@@ -115,18 +78,19 @@ Invoke the review workflow when you want to inspect results or steer the next st
 /autoexp-review
 ```
 
-The native review command opens a short-lived local browser session before a
-model decides what to do. You can inspect source, rendered artifacts, CSV
-tables, images, logs, reports, and diffs.
-Attach feedbacks/notes and submit one structured feedback batch. Feedback returns directly to the agent for follow-up experimentation and result.
+The review command opens a local browser session immediately. You can inspect
+source, rendered artifacts, CSV tables, images, logs, reports, and diffs.
+Add notes and submit one feedback batch. Your agent receives it and continues
+the experiment.
 
 ### Dashboard view
 
-Use `autoexp view` to open and view all your autoexp experimentations/research and their results in one place in read/download-mode only.
+Use `autoexp view` to browse and download experiments, runs, artifacts, reports,
+metrics, and diffs in one place.
 
 ## Direct CLI reference
 
-Most users let the plugin drive these commands. They remain available for inspection, automation, and debugging:
+Use these commands for history, automation, and direct control:
 
 | Task | Command |
 | --- | --- |
@@ -138,45 +102,11 @@ Most users let the plugin drive these commands. They remain available for inspec
 | Check the selected experiment and runtime | `autoexp doctor` |
 | Open a blocking agent review | `autoexp review` |
 
-<details>
-<summary>What the agent runs for a Standard experiment</summary>
-
-```bash
-autoexp experiment create "<objective>" --title "<title>" --entrypoint <path> --command "<command>"
-autoexp files add <path> --role editable-source
-autoexp files add <path> --role supporting-source
-autoexp files add <path> --role input-data
-autoexp run --agent --title "<variant or hypothesis>"
-```
-
-The agent can attach reports and insights without writing generated documents into the repository:
-
-```bash
-autoexp document add /tmp/findings.md --kind insight --title "<title>"
-autoexp document add /tmp/report.md --kind report --title "<title>"
-```
-
-</details>
-
-<details>
-<summary>What the agent runs for Autoresearch</summary>
-
-```bash
-autoexp experiment create "<objective>" --kind autoresearch \
-  --program <program> --candidate <candidate> --evaluator <evaluator> \
-  --metric <name> --direction <min|max> \
-  --metric-kind json --metric-path metrics.json --metric-key <key>
-
-autoexp research preflight
-autoexp research state
-autoexp research attempt "<hypothesis>"
-```
-
-</details>
-
 ## Local data and secrets
 
-**autoexp** stores its ledger in one global SQLite database and one private bare Git snapshot repository per registered worktree. Ordinary repository files remain where they are, and secrets are never hidden by default in view.
+Autoexp stores experiment history and restorable snapshots locally. Repository
+files stay in their original locations. Review screens display recorded
+content, so keep sensitive values outside experiment outputs.
 
 Default data directory:
 
@@ -185,12 +115,3 @@ Default data directory:
 - Windows: `%LOCALAPPDATA%/autoexp`
 
 Set `AUTOEXP_HOME` to override it. Use `autoexp relink <repo-id> <new-path>` if a worktree moves.
-
-## Development
-
-```bash
-uv run pytest
-cd frontend && npm install && npm run build
-```
-
-The Vite build writes the bundled dashboard to `autoexp/ui`. Autoexp itself has no runtime Python dependencies.
