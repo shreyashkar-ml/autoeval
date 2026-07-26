@@ -8,6 +8,8 @@ Track your autonomous research and experimentation, send follow-up feedbacks, an
 
 AI agents are already good at proposing code. The harder problem is the harness around those proposals: source boundaries, reproducible execution, external inputs, evaluators, artifacts, lineage, rollback, and human review. Autoexp supplies that infrastructure while your repository remains the editable source of truth.
 
+Explore the workflow and installation options at [autoexp.dev](https://autoexp.dev).
+
 <table>
   <tr>
     <td width="36%">
@@ -34,7 +36,7 @@ AI agents are already good at proposing code. The harder problem is the harness 
 First, install the runtime:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shreyashkar-ml/autoexp/main/install.sh | bash
+curl -fsSL https://autoexp.dev/install.sh | bash
 ```
 
 Then choose your agent and install its plugin:
