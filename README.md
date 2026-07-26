@@ -15,7 +15,7 @@ AI agents are already good at proposing code. The harder problem is the harness 
       <p>Compare variants, inspect immutable evidence, and turn results into a clear recommendation.</p>
     </td>
     <td width="64%">
-      <img src="assets/autoexp_demo.png" alt="Autoexp dashboard showing experiment variants, immutable run evidence, milestones, and the project report">
+      <img src="assets/autoexp_demo.png?v=20260726" alt="Autoexp dashboard showing experiment variants, immutable run evidence, milestones, and the project report">
     </td>
   </tr>
   <tr>
