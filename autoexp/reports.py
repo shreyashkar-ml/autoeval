@@ -1,30 +1,18 @@
 """Global report guidance, immutable documents, and synthesis evidence."""
 
-import hashlib
 import uuid
 from pathlib import Path
 
 from .runs import get_run, script_name, source_root_for_run
 from .workspace import (
-    PARAMS_FILE, PROJECT_REPORT, experiment_entry, experiment_id, manifest_files,
-    now, repository_root, resolve_root, run_dir_for, safe_repository_path, write_json,
+    PARAMS_FILE, PROJECT_REPORT, experiment_entry, experiment_id, file_hash,
+    manifest_files, now, repository_root, resolve_root, run_dir_for,
+    safe_repository_path, write_json,
 )
 
 
 REPORT_CONTRACT = """Use the global run report bundle as the source of truth. Read only the referenced immutable outputs, logs, source snapshot, report guidance, and safe secret-key availability metadata. Never request or include secret values. Write generated report files under the run's global report directory."""
 PROJECT_REPORT_CONTRACT = """Synthesize the experiment as a whole from recorded runs, milestones, reports, insights, and Autoresearch attempts. Distinguish evidence from inference and cite run IDs."""
-
-
-def _hash_file(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _redacted_bytes(data, root):
-    from .runner import redaction_env_values
-
-    for value in sorted({value.encode() for value in redaction_env_values(root) if value}, key=len, reverse=True):
-        data = data.replace(value, b"[redacted]")
-    return data
 
 
 def app_env_keys(root=None):
@@ -96,7 +84,7 @@ def _document(root, path, kind, title, run_id=None):
              content_hash, size_bytes, created_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             document_id, experiment_id(root), run_id, kind, title, rel,
-            _hash_file(path), path.stat().st_size, now(),
+            file_hash(path), path.stat().st_size, now(),
         ),
     )
     conn.commit()
@@ -128,7 +116,10 @@ def add_document(path, *, kind, title=None, root=None, run_id=None):
     directory = root / ("insights" if kind == "insight" else "reports")
     directory.mkdir(parents=True, exist_ok=True)
     destination = directory / f"{source.stem}-{uuid.uuid4().hex[:8]}{source.suffix}"
-    destination.write_bytes(_redacted_bytes(source.read_bytes(), root))
+    from .runner import copy_redacted, redaction_env_values
+
+    with source.open("rb") as handle:
+        copy_redacted(handle, destination, redaction_env_values(root))
     return _document(root, destination, kind, title or source.stem.replace("_", " "), run_id)
 
 
@@ -157,6 +148,25 @@ def write_project_report(text, root=None):
     return _document(root, path, "report", "Experiment report")
 
 
+def write_milestone_report(milestone, run_id, root=None):
+    root = resolve_root(root)
+    run = get_run(run_id, root)
+    text = (
+        f"# {milestone['title']}\n\n"
+        f"{milestone['significance']}\n\n"
+        "## Evidence\n\n"
+        f"- Run: `{run_id}`\n"
+        f"- Status: `{run['status']}`\n"
+        f"- Source snapshot: `{run.get('source_snapshot_id') or 'unavailable'}`\n"
+        f"- Output hash: `{run.get('output_hash') or 'unavailable'}`\n"
+    )
+    path = root / "reports" / f"milestone-report-{uuid.uuid4().hex[:8]}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    from .runner import redact_secrets
+    path.write_text(redact_secrets(text, root))
+    return _document(root, path, "report", milestone["title"], run_id)
+
+
 def mark_milestone(*, title, significance, run_id=None, attempt_id=None, actor_name=None, root=None):
     from .store import db, init_db
 
@@ -169,20 +179,41 @@ def mark_milestone(*, title, significance, run_id=None, attempt_id=None, actor_n
     kind, target = ("run", run_id) if run_id else ("attempt", attempt_id)
     conn = db()
     if kind == "run":
-        exists = conn.execute(
-            "select 1 from runs where run_id = ? and experiment_id = ?",
+        owner = conn.execute(
+            "select run_id from runs where run_id = ? and experiment_id = ?",
             (target, experiment_id(root)),
         ).fetchone()
     else:
-        exists = conn.execute(
-            """select 1 from research_attempts a join research_contracts c
+        owner = conn.execute(
+            """select a.run_id from research_attempts a join research_contracts c
                  on c.contract_id = a.contract_id
                where a.attempt_id = ? and c.experiment_id = ?""",
             (target, experiment_id(root)),
         ).fetchone()
-    if not exists:
+    if not owner:
         conn.close()
         raise ValueError(f"unknown {kind}: {target}")
+    run_id = owner["run_id"]
+    if not run_id:
+        conn.close()
+        raise ValueError(f"{kind} has no completed run evidence: {target}")
+    existing = conn.execute(
+        """select * from milestones
+           where experiment_id = ? and target_kind = ? and target_id = ?
+           order by rowid desc limit 1""",
+        (experiment_id(root), kind, target),
+    ).fetchone()
+    if existing:
+        conn.close()
+        milestone = dict(existing)
+        report = next(
+            (item for item in list_documents(root, "report") if item.get("run_id") == run_id),
+            None,
+        )
+        return {
+            **milestone,
+            "report": report or write_milestone_report(milestone, run_id, root),
+        }
     from .runner import redact_secrets
     milestone_id = f"ms_{uuid.uuid4().hex[:12]}"
     conn.execute(
@@ -197,7 +228,8 @@ def mark_milestone(*, title, significance, run_id=None, attempt_id=None, actor_n
     )
     conn.commit()
     conn.close()
-    return next(item for item in list_milestones(root) if item["milestone_id"] == milestone_id)
+    milestone = next(item for item in list_milestones(root) if item["milestone_id"] == milestone_id)
+    return {**milestone, "report": write_milestone_report(milestone, run_id, root)}
 
 
 def list_milestones(root=None):

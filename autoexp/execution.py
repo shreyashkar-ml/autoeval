@@ -13,6 +13,8 @@ from .provenance import (
     external_input_identity,
     inventory_external_inputs,
     record_external_inputs,
+    resolve_environment,
+    secret_environment_values,
 )
 from .reports import write_report_bundle
 from .runner import (
@@ -35,6 +37,7 @@ from .runs import (
     finalize_failure,
     finalize_success,
     get_run,
+    latest_run,
     mark_running,
     register_worker,
 )
@@ -128,6 +131,8 @@ def execute(
     require_autoexp_git_repo(root)
     init_db(root)
     snapshot, parent = _source_request(root, run_id, snapshot_id)
+    if snapshot is None:
+        parent = latest_run(root)
 
     preflight = None
     trigger = None
@@ -152,6 +157,7 @@ def execute(
             )
             snapshot = capture_workspace(
                 root,
+                parent_snapshot_id=parent["source_snapshot_id"] if parent else None,
                 created_by_trigger_id=trigger["trigger_id"],
                 label="Execution source",
             )
@@ -160,12 +166,9 @@ def execute(
         if preflight is None:
             preflight = require_preflight(root, temp_root)
         hashes = compute_hashes(temp_root)
+        environment = resolve_environment(temp_root, root, environment)
         input_records = inventory_external_inputs(temp_root, root, environment)
-        secret_values = [
-            environment[record["name"]]
-            for record in input_records
-            if record["kind"] == "secret" and record["name"] in environment
-        ]
+        secret_values = secret_environment_values(temp_root, environment)
         hashes["capsule_hash"] = hash_json({
             "execution": hashes["capsule_hash"],
             "external_inputs": external_input_identity(input_records),

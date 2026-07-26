@@ -14,7 +14,7 @@ from .provenance import (
     reproduction_state,
 )
 from .reports import write_report_bundle
-from .runs import get_run, restore_run_state
+from .runs import get_run, latest_run
 from .snapshots import (
     diff_snapshots,
     get_snapshot,
@@ -58,7 +58,11 @@ def report_path_for_run(run, root):
 
     reports = list_artifacts(run["run_id"], root=root, category="report")
     artifact = _primary_report(reports)
-    return f"{run['run_dir'].rstrip('/')}/{artifact['path']}" if artifact else ""
+    if artifact:
+        return f"{run['run_dir'].rstrip('/')}/{artifact['path']}"
+    from .reports import list_documents
+    document = next((item for item in list_documents(root, "report") if item.get("run_id") == run["run_id"]), None)
+    return document["path"] if document else ""
 
 
 def output_files_for_run(run, root):
@@ -192,12 +196,18 @@ def run_report(run_id, root=None):
     root = resolve_root(root)
     artifact = _primary_report(list_artifacts(run_id, root=root, category="report"))
     if not artifact:
-        return {"run_id": run_id, "path": "", "artifact": None, "text": ""}
+        from .reports import list_documents
+        document = next((item for item in list_documents(root, "report") if item.get("run_id") == run_id), None)
+        if not document:
+            return {"run_id": run_id, "path": "", "artifact": None, "document": None, "text": ""}
+        path = root / document["path"]
+        return {"run_id": run_id, "path": document["path"], "artifact": None, "document": document, "text": path.read_text(errors="replace")}
     artifact, content = artifact_content(run_id, artifact["artifact_id"], root)
     return {
         "run_id": run_id,
         "path": artifact["path"],
         "artifact": artifact,
+        "document": None,
         "text": content.decode(errors="replace"),
     }
 
@@ -278,6 +288,11 @@ def run_diff(run_id, root=None, *, base_run_id=None, base_snapshot_id=None):
         base_snapshot_id = get_run(base_run_id, root).get("source_snapshot_id")
     elif not base_snapshot_id:
         base_snapshot_id = snapshot.get("parent_snapshot_id")
+    if not base_snapshot_id:
+        previous = latest_run(root, before_run_id=run_id)
+        if previous:
+            base_run_id = previous["run_id"]
+            base_snapshot_id = previous["source_snapshot_id"]
 
     if not base_snapshot_id:
         return {

@@ -6,13 +6,13 @@ import tempfile
 import webbrowser
 from urllib.parse import quote
 
-from .reports import add_document, report_instruction, set_report_instruction
+from .reports import add_document, mark_milestone, report_instruction, set_report_instruction
 from .review import create_review_session, wait_for_review
 from .runtime import diff_runs, doctor, list_runs
 from .workspace import (
     FILE_ROLES, create_experiment, declare_file, die, experiment_entry,
     list_experiments, manifest_files, materialize_workspace, now,
-    repository_root, resolve_root,
+    repository_root, resolve_root, sync_storage,
 )
 
 
@@ -55,8 +55,9 @@ def experiment_create_cmd(args):
         runner=args.runner, config=config,
     )
     if args.kind == "autoresearch":
-        declare_file(entry["experiment_id"], args.program, "supporting-source", description="research program")
-        declare_file(entry["experiment_id"], args.evaluator, "frozen-evaluator", description="frozen evaluator")
+        files = {item["role"]: item["path"] for item in entry["config"]["autoresearch"]["files"]}
+        declare_file(entry["experiment_id"], files["human"], "supporting-source", description="research program")
+        declare_file(entry["experiment_id"], files["frozen"], "frozen-evaluator", description="frozen evaluator")
     emit(_public_entry(entry), as_json=args.json)
 
 
@@ -134,6 +135,13 @@ def document_add_cmd(args):
     emit(add_document(args.path, kind=args.kind, title=args.title, root=selected(args), run_id=args.run_id), as_json=True)
 
 
+def milestone_add_cmd(args):
+    emit(mark_milestone(
+        run_id=args.run_id, attempt_id=args.attempt_id, title=args.title,
+        significance=args.significance, actor_name=args.actor, root=selected(args),
+    ), as_json=True)
+
+
 def view_cmd(args):
     from .server import view
     view(args.host, args.port, args.allow_origin, experiment=args.experiment, open_browser=not args.no_open)
@@ -188,6 +196,10 @@ def relink_cmd(args):
 def import_cmd(args):
     from .importer import import_legacy_project
     emit(import_legacy_project(args.path), as_json=True)
+
+
+def sync_cmd(args):
+    emit(sync_storage(prune=args.prune), as_json=True)
 
 
 def research_state_cmd(args):
@@ -303,6 +315,18 @@ def build_parser():
     add_selector(document_add)
     document_add.set_defaults(fn=document_add_cmd)
 
+    milestone = sub.add_parser("milestone")
+    milestone_sub = milestone.add_subparsers(required=True)
+    milestone_add = milestone_sub.add_parser("add")
+    target = milestone_add.add_mutually_exclusive_group(required=True)
+    target.add_argument("--run-id")
+    target.add_argument("--attempt-id")
+    milestone_add.add_argument("--title", required=True)
+    milestone_add.add_argument("--significance", required=True)
+    milestone_add.add_argument("--actor")
+    add_selector(milestone_add)
+    milestone_add.set_defaults(fn=milestone_add_cmd)
+
     view = sub.add_parser("view")
     view.add_argument("--host", default="127.0.0.1")
     view.add_argument("--port", type=int, default=8765)
@@ -339,6 +363,9 @@ def build_parser():
     importer = sub.add_parser("import")
     importer.add_argument("path")
     importer.set_defaults(fn=import_cmd)
+    sync = sub.add_parser("sync", help="audit global storage and optionally prune missing experiments")
+    sync.add_argument("--prune", action="store_true", help="permanently delete experiments whose working directory is missing")
+    sync.set_defaults(fn=sync_cmd)
     return parser
 
 

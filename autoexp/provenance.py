@@ -6,11 +6,14 @@ import os
 import uuid
 from pathlib import Path
 
-from .runner import SECRET_KEY, app_env, redaction_env_values
+from .runner import ENV_NAME, SECRET_KEY, app_env, redaction_env_values
 from .runs import get_run
 from .snapshots import get_snapshot
 from .store import db, init_db
-from .workspace import PROJECT_CONFIG, experiment_id, now, read_json, repository_root, resolve_root
+from .workspace import (
+    PROJECT_CONFIG, experiment_id, file_hash, now, read_json, repository_root,
+    resolve_root,
+)
 
 
 TRIGGER_KINDS = {"human", "ui", "cli", "agent", "autoresearch", "legacy"}
@@ -101,12 +104,28 @@ def _declarations(config):
     return [item for item in raw if isinstance(item, dict) and isinstance(item.get("name"), str)]
 
 
-def _file_hash(path):
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        while chunk := handle.read(1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
+def resolve_environment(source_root, root=None, overrides=None):
+    """Resolve only declared, file-backed, or explicitly supplied environment values."""
+    root = resolve_root(root)
+    config = read_json(Path(source_root) / PROJECT_CONFIG)
+    values = app_env(root)
+    declared = {item["name"] for item in _declarations(config)}
+    values.update({name: os.environ[name] for name in declared if name in os.environ})
+    values.update({str(key): str(value) for key, value in (overrides or {}).items()})
+    invalid = [name for name, value in values.items() if not ENV_NAME.fullmatch(name) or "\0" in value]
+    if invalid:
+        raise ValueError(f"invalid environment variable name or value: {invalid[0]}")
+    return values
+
+
+def secret_environment_values(source_root, environment):
+    """Return values explicitly declared or conventionally named as secrets."""
+    config = read_json(Path(source_root) / PROJECT_CONFIG)
+    secret_names = {
+        item["name"] for item in _declarations(config) if item.get("kind") == "secret"
+    }
+    secret_names.update(name for name in environment if SECRET_KEY.search(name))
+    return [environment[name] for name in secret_names if name in environment]
 
 
 def _input_record(spec, environment, root):
@@ -131,7 +150,7 @@ def _input_record(spec, environment, root):
         present = path.exists()
         metadata["path"] = raw_path
         if present and path.is_file() and spec.get("fingerprint", True):
-            fingerprint = _file_hash(path)
+            fingerprint = file_hash(path)
     else:
         present = bool(spec.get("present", True))
 
@@ -158,7 +177,7 @@ def inventory_external_inputs(source_root, root=None, environment_overrides=None
         raise ValueError(f"{PROJECT_CONFIG} must contain a JSON object")
     env_file = app_env(root)
     overrides = {str(key): str(value) for key, value in (environment_overrides or {}).items()}
-    environment = env_file | overrides if config.get("runner") == "docker" else os.environ | env_file | overrides
+    environment = resolve_environment(source_root, root, overrides)
     records = {
         record["name"]: record
         for record in (_input_record(spec, environment, root) for spec in _declarations(config))

@@ -71,6 +71,29 @@ def get_run(run_id, root=None):
     raise ValueError(f"unknown run_id: {run_id}")
 
 
+def latest_run(root=None, *, before_run_id=None):
+    root = resolve_root(root)
+    conn = db()
+    before = ""
+    values = [experiment_id(root)]
+    if before_run_id:
+        before = "and rowid < (select rowid from runs where run_id = ? and experiment_id = ?)"
+        values.extend((before_run_id, experiment_id(root)))
+    row = conn.execute(
+        f"""select * from runs
+            where experiment_id = ? and source_snapshot_id is not null
+              and status in ('success', 'failed', 'canceled') {before}
+            order by rowid desc limit 1""",
+        values,
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    run = dict(row)
+    run["stage_status"] = json.loads(run["stage_status"])
+    return run
+
+
 def run_stage_commit(run):
     commit = run.get("stage_commit")
     if not commit:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import os
@@ -19,6 +18,7 @@ from typing import Literal
 from .workspace import (
     PROJECT_CONFIG,
     experiment_id,
+    file_hash,
     repository_root,
 )
 
@@ -127,7 +127,6 @@ class AutoResearch:
     def _configured_path(self, path):
         role = self._require_config().role_of(path)
         rel = Path(path)
-        from .workspace import repository_root
         target = repository_root(self.dir) / rel
         if (
             role is None
@@ -141,7 +140,7 @@ class AutoResearch:
 
     @staticmethod
     def _full_hash(path):
-        return f"sha256:{hashlib.sha256(Path(path).read_bytes()).hexdigest()}"
+        return f"sha256:{file_hash(path)}"
 
     @staticmethod
     def _display_hash(value):
@@ -298,7 +297,7 @@ class AutoResearch:
         from .provenance import create_trigger
         from .snapshots import capture_workspace
         from .store import db
-        from .workspace import experiment_id, now
+        from .workspace import now
 
         values = self._contract_values()
         current = self._active_contract()
@@ -809,7 +808,21 @@ class AutoResearch:
                 attempt["candidate_snapshot_id"],
             )
         self._update_session(attempt.get("session_id"), phase="propose", attempt_id=None)
-        return self._attempt(key)
+        result = self._attempt(key)
+        if improves:
+            from .reports import mark_milestone
+            previous = "the baseline" if best is None else f"{best:g}"
+            mark_milestone(
+                attempt_id=attempt["attempt_id"],
+                title=attempt["hypothesis"],
+                significance=(
+                    f"Kept as the new best {contract['metric']} at {score:g}, "
+                    f"improving on {previous}."
+                ),
+                actor_name="autoexp-autoresearch",
+                root=self.dir,
+            )
+        return result
 
     def state(self):
         config = self._load_config()

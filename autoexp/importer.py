@@ -4,15 +4,14 @@ import hashlib
 import json
 import shutil
 import sqlite3
-import subprocess
 import tempfile
 import uuid
 from pathlib import Path
 
-from .store import db, private_git_dir
+from .store import autoexp_git, db, require_autoexp_git_repo
 from .workspace import (
     PROJECT_CONFIG, PROJECT_REPORT_INSTRUCTIONS, create_experiment, declare_file,
-    experiment_data_dir, now, read_json,
+    experiment_data_dir, file_hash, now, private_dir, read_json,
 )
 
 
@@ -22,6 +21,12 @@ def _columns(conn, table):
 
 def _tables(conn):
     return {row[0] for row in conn.execute("select name from sqlite_master where type = 'table'")}
+
+
+def _reject_symlinks(path, label):
+    path = Path(path)
+    if path.is_symlink() or (path.is_dir() and any(item.is_symlink() for item in path.rglob("*"))):
+        raise ValueError(f"{label} must not contain symlinks")
 
 
 
@@ -46,8 +51,7 @@ def _validate_artifact_hashes(old, data_root):
         path = _safe_import_file(data_root, runs[artifact["run_id"]], artifact["path"])
         if not path.is_file():
             raise ValueError(f"missing imported artifact: {artifact['path']}")
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        if digest != artifact["content_hash"] or path.stat().st_size != artifact["size_bytes"]:
+        if file_hash(path) != artifact["content_hash"] or path.stat().st_size != artifact["size_bytes"]:
             raise ValueError(f"imported artifact hash mismatch: {artifact['path']}")
         checked += 1
     return {"checked": checked, "ok": True}
@@ -78,7 +82,6 @@ def _copy_rows(old, new, table, *, extras=None, renames=None, transform=None):
         return 0
     extras = extras or {}
     renames = renames or {}
-    old_columns = _columns(old, table)
     new_columns = _columns(new, table)
     rows = old.execute(f"select * from {table}").fetchall()
     for source in rows:
@@ -156,8 +159,9 @@ def _record_for_non_git_repo(root, config, stage, title, kind):
     )
     conn.commit()
     conn.close()
+    private_dir(data_path)
     for name in ("runs", "reports", "insights"):
-        (data_path / name).mkdir(parents=True, exist_ok=True)
+        private_dir(data_path / name)
     return experiment_id
 
 
@@ -183,6 +187,14 @@ def _import_legacy_project(path, created):
     old_git = source / ".autoexp/repository"
     if not old_db_path.is_file() or not config_path.is_file() or not old_git.is_dir():
         raise ValueError("legacy project must contain .autoexp/state.sqlite, project.json, and repository")
+    for candidate, label in (
+        (old_db_path, "legacy database"),
+        (config_path, "legacy configuration"),
+        (old_git, "legacy snapshot repository"),
+        (source / "experiment", "legacy experiment source"),
+        (source / "runs", "legacy run evidence"),
+    ):
+        _reject_symlinks(candidate, label)
 
     global_db = db()
     prior = global_db.execute("select summary from imports where source_path = ?", (str(source),)).fetchone()
@@ -225,15 +237,11 @@ def _import_legacy_project(path, created):
     for rel, role in manifest:
         declare_file(experiment_id, rel, role)
 
-    destination_git = private_git_dir(data_root)
-    if destination_git.is_dir():
-        subprocess.run(
-            ["git", "--git-dir", str(destination_git), "fetch", str(old_git), "+refs/*:refs/imported/*"],
-            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-    else:
-        destination_git.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(old_git, destination_git)
+    require_autoexp_git_repo(data_root)
+    autoexp_git(
+        ["fetch", str(old_git), "+refs/*:refs/imported/*"],
+        root=data_root,
+    )
 
     old_runs = source / "runs"
     if old_runs.is_dir():
@@ -245,8 +253,10 @@ def _import_legacy_project(path, created):
                 shutil.copytree(run, target)
 
     old_report = source / ".autoexp/project-report.md"
+    if old_report.is_symlink():
+        raise ValueError("legacy project report must not be a symlink")
     if old_report.is_file():
-        (data_root / "reports/report.md").write_bytes(old_report.read_bytes())
+        shutil.copyfile(old_report, data_root / "reports/report.md")
 
     old = sqlite3.connect(old_db_path)
     old.row_factory = sqlite3.Row
@@ -293,7 +303,7 @@ def _import_legacy_project(path, created):
                    ) values (?, ?, null, 'report', ?, 'reports/report.md', ?, ?, ?)""",
                 (
                     f"document_{uuid.uuid4().hex}", experiment_id, title,
-                    hashlib.sha256(report_path.read_bytes()).hexdigest(),
+                    file_hash(report_path),
                     report_path.stat().st_size, now(),
                 ),
             )

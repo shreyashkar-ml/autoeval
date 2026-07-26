@@ -1,14 +1,12 @@
 """Global read/download dashboard and explicit browser-review transport."""
 
-import io
-import hashlib
 import ipaddress
 import json
 import mimetypes
-import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import webbrowser
 import zipfile
@@ -18,14 +16,14 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 from urllib.request import urlopen
 
 from .artifacts import artifact_content, artifact_detail, artifact_file, list_artifacts, read_log
-from .reports import list_documents, list_milestones, read_project_report
+from .reports import list_documents, list_milestones, read_project_report, write_report_instruction
 from .review import review_session, submit_review
 from .runtime import list_runs, run_diff, run_overview, run_report, run_source
 from .snapshots import materialize_snapshot
 from .store import db
 from .workspace import (
-    experiment_entry, manifest_files, project_mode, registry, resolve_root,
-    safe_repository_path,
+    experiment_entry, file_hash, manifest_files, project_mode, registry,
+    resolve_root, safe_repository_path,
 )
 
 
@@ -94,10 +92,9 @@ def _experiment_payload(root, limit=100):
     return payload
 
 
-def _bundle(root):
+def _bundle(root, destination):
     root = resolve_root(root)
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as archive:
         for top in ("reports", "insights", "runs"):
             base = root / top
             if not base.is_dir():
@@ -105,7 +102,7 @@ def _bundle(root):
             for path in sorted(base.rglob("*")):
                 if path.is_file() and not path.is_symlink():
                     archive.write(path, path.relative_to(root))
-    return buffer.getvalue()
+    return Path(destination)
 
 
 class AutoexpHTTPServer(ThreadingHTTPServer):
@@ -133,6 +130,8 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         self._dispatch(self._post, check_origin=True)
 
     def _dispatch(self, fn, check_origin=False):
+        if not self._host_allowed():
+            return self._json({"error": "host not allowed"}, 421)
         if check_origin and not self._origin_allowed():
             return self._json({"error": "origin not allowed"}, 403)
         try:
@@ -172,7 +171,9 @@ class AutoexpHandler(BaseHTTPRequestHandler):
                 return self._experiment_file(root, query)
             if parts[2:] == ["bundle"]:
                 entry = experiment_entry(root)
-                return self._content(_bundle(root), "application/zip", f"{entry['experiment_id']}.zip", attachment=True)
+                with tempfile.TemporaryDirectory(prefix="autoexp-bundle-") as tmp:
+                    bundle = _bundle(root, Path(tmp) / "bundle.zip")
+                    return self._file(bundle, "application/zip", f"{entry['experiment_id']}.zip")
             if parts[2:] == ["documents"]:
                 return self._document(root, query)
 
@@ -185,9 +186,10 @@ class AutoexpHandler(BaseHTTPRequestHandler):
                 return self._json(run_source(run_id, root))
             if parts[2:] == ["report"]:
                 report = run_report(run_id, root)
-                if query.get("download", ["0"])[0] == "1" and report["artifact"]:
+                if query.get("download", ["0"])[0] == "1" and report["text"]:
                     return self._content(
-                        report["text"].encode(), report["artifact"]["media_type"],
+                        report["text"].encode(),
+                        report["artifact"]["media_type"] if report["artifact"] else "text/markdown; charset=utf-8",
                         Path(report["path"]).name, attachment=True,
                     )
                 return self._json(report)
@@ -224,12 +226,16 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         return self._json({"error": "not found"}, 404)
 
     def _post(self):
-        if urlparse(self.path).path != "/api/review/submit":
-            return self._json({"error": "not found"}, 404)
+        path = urlparse(self.path).path
         body = self._body({})
         if not isinstance(body, dict):
             return self._json({"error": "body must be an object"}, 400)
-        return self._json({"session": submit_review(body.get("token"), body.get("notes"))})
+        if path == "/api/review/submit":
+            return self._json({"session": submit_review(body.get("token"), body.get("notes"))})
+        parts = [unquote(part) for part in path.removeprefix("/api/").split("/") if part]
+        if len(parts) == 3 and parts[0] == "experiments" and parts[2] == "report-guidance":
+            return self._json(write_report_instruction(body.get("text"), resolve_root(parts[1])))
+        return self._json({"error": "not found"}, 404)
 
     def _root_for_run(self, run_id):
         from .store import db
@@ -266,17 +272,33 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         path = (root / rel).resolve()
         if not path.is_file() or not path.is_relative_to(root.resolve()):
             raise FileNotFoundError(rel)
-        if path.stat().st_size != document["size_bytes"] or hashlib.sha256(path.read_bytes()).hexdigest() != document["content_hash"]:
+        if path.stat().st_size != document["size_bytes"] or file_hash(path) != document["content_hash"]:
             raise ValueError(f"immutable document content changed: {rel}")
-        return self._content(path.read_bytes(), mimetypes.guess_type(path.name)[0] or "application/octet-stream", path.name, attachment=query.get("download", ["0"])[0] == "1")
+        return self._file(
+            path,
+            mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+            path.name,
+            attachment=query.get("download", ["0"])[0] == "1",
+        )
 
     def _body(self, default=None):
         length = int(self.headers.get("Content-Length", "0"))
         if length == 0:
             return default
-        if length > 1024 * 1024:
+        if length < 0 or length > 1024 * 1024:
             raise ValueError("request body is too large")
         return json.loads(self.rfile.read(length).decode())
+
+    def _host_allowed(self):
+        try:
+            parsed = urlparse(f"//{self.headers.get('Host', '')}")
+            return (
+                parsed.hostname is not None
+                and (parsed.port is None or parsed.port == self.server.server_port)
+                and (parsed.hostname == "localhost" or ipaddress.ip_address(parsed.hostname).is_loopback)
+            )
+        except (ValueError, TypeError):
+            return False
 
     def _origin_allowed(self):
         origin = self.headers.get("Origin")
@@ -291,6 +313,10 @@ class AutoexpHandler(BaseHTTPRequestHandler):
     def _headers(self):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         origin = self.headers.get("Origin")
         if origin and self._origin_allowed():
             self.send_header("Access-Control-Allow-Origin", origin)
@@ -300,7 +326,7 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         body = json.dumps(payload, indent=2).encode()
         self.send_response(status)
         self._headers()
-        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -309,7 +335,7 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self._headers()
         self.send_header("Content-Type", content_type)
-        self.send_header("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" if static else "sandbox; default-src 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" if static else "sandbox; default-src 'none'")
         if attachment and filename:
             safe = filename.replace('"', "").replace("\r", "").replace("\n", "")
             self.send_header("Content-Disposition", f'attachment; filename="{safe}"')
@@ -317,14 +343,15 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _file(self, path, content_type, filename):
+    def _file(self, path, content_type, filename=None, *, attachment=True):
         path = Path(path)
-        safe = filename.replace('"', "").replace("\r", "").replace("\n", "")
         self.send_response(200)
         self._headers()
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Security-Policy", "sandbox; default-src 'none'")
-        self.send_header("Content-Disposition", f'attachment; filename="{safe}"')
+        if attachment and filename:
+            safe = filename.replace('"', "").replace("\r", "").replace("\n", "")
+            self.send_header("Content-Disposition", f'attachment; filename="{safe}"')
         self.send_header("Content-Length", str(path.stat().st_size))
         self.end_headers()
         with path.open("rb") as handle:
@@ -346,19 +373,20 @@ class AutoexpHandler(BaseHTTPRequestHandler):
 
 def _require_loopback_host(host):
     try:
-        loopback = host == "localhost" or (
-            ipaddress.ip_address(host).version == 4
-            and ipaddress.ip_address(host).is_loopback
-        )
+        loopback = host == "localhost" or ipaddress.ip_address(host).is_loopback
     except ValueError:
         loopback = False
     if not loopback:
         raise ValueError("Autoexp view may only bind to a loopback host")
 
 
+def _server_url(host, port):
+    return f"http://{'[' + host + ']' if ':' in host else host}:{port}"
+
+
 def _healthy(host, port):
     try:
-        with urlopen(f"http://{host}:{port}/api/health", timeout=0.5) as response:
+        with urlopen(f"{_server_url(host, port)}/api/health", timeout=0.5) as response:
             data = json.load(response)
             return data.get("ok") is True and data.get("version") == "0.3"
     except Exception:
@@ -368,14 +396,14 @@ def _healthy(host, port):
 def ensure_server(host="127.0.0.1", port=8765):
     _require_loopback_host(host)
     if _healthy(host, port):
-        return f"http://{host}:{port}", None
+        return _server_url(host, port), None
     proc = subprocess.Popen(
         [sys.executable, "-m", "autoexp", "view", "--host", host, "--port", str(port), "--no-open"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
     )
     for _ in range(40):
         if _healthy(host, port):
-            return f"http://{host}:{port}", proc
+            return _server_url(host, port), proc
         if proc.poll() is not None:
             break
         time.sleep(0.1)
@@ -385,7 +413,7 @@ def ensure_server(host="127.0.0.1", port=8765):
 def view(host="127.0.0.1", port=8765, allow_origins=None, experiment=None, review_token=None, open_browser=True):
     _require_loopback_host(host)
     if _healthy(host, port):
-        base = f"http://{host}:{port}"
+        base = _server_url(host, port)
         query = []
         if experiment:
             query.append(f"experiment={quote(str(experiment))}")
@@ -402,7 +430,7 @@ def view(host="127.0.0.1", port=8765, allow_origins=None, experiment=None, revie
         query.append(f"experiment={quote(str(experiment))}")
     if review_token:
         query.append(f"review={quote(review_token)}")
-    url = f"http://{host}:{server.server_port}/" + ("?" + "&".join(query) if query else "")
+    url = f"{_server_url(host, server.server_port)}/" + ("?" + "&".join(query) if query else "")
     print(f"[autoexp] view ready at {url}", flush=True)
     if open_browser:
         webbrowser.open(url)

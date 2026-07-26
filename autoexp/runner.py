@@ -8,6 +8,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from .store import db
@@ -22,6 +23,12 @@ RUN_CONTEXT = {
     "output_dir": "/workspace/run/output", "logs_dir": "/workspace/run/logs",
 }
 SECRET_KEY = re.compile(r"(?:secret|token|password|passwd|api[_-]?key|credential)", re.I)
+ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+LOCAL_ENV_KEYS = {
+    "COMSPEC", "HOME", "LANG", "LC_ALL", "LC_CTYPE", "LOGNAME", "PATH",
+    "PATHEXT", "SHELL", "SYSTEMROOT", "TEMP", "TMP", "TMPDIR", "TZ", "USER",
+    "USERNAME", "VIRTUAL_ENV", "WINDIR",
+}
 
 
 def hash_json(data):
@@ -36,7 +43,10 @@ def hash_dir(path):
             raise ValueError(f"source contains unsupported symlink: {item.relative_to(path)}")
         if item.is_file():
             digest.update(item.relative_to(path).as_posix().encode() + b"\0")
-            digest.update(item.read_bytes() + b"\0")
+            with item.open("rb") as handle:
+                while chunk := handle.read(1024 * 1024):
+                    digest.update(chunk)
+            digest.update(b"\0")
     return digest.hexdigest()
 
 
@@ -151,41 +161,38 @@ def redact_secrets(text, root, secret_values=()):
     return _redact(str(text), [*redaction_env_values(root), *secret_values])
 
 
-def _capture(proc, logs, values, timeout_sec=None):
-    try:
-        stdout, stderr = proc.communicate(timeout=timeout_sec)
-    except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL) if hasattr(os, "killpg") else proc.kill()
-        except ProcessLookupError:
-            pass
-        stdout, stderr = proc.communicate()
-        (logs / "script.stdout.log").write_text(_redact(stdout or "", values))
-        (logs / "script.stderr.log").write_text(_redact(stderr or "", values))
-        raise
-    (logs / "script.stdout.log").write_text(_redact(stdout or "", values))
-    (logs / "script.stderr.log").write_text(_redact(stderr or "", values))
-    return proc.returncode
+def _redact_prefix(data, pattern, limit):
+    """Redact complete matches that begin before limit; retain the unsafe tail."""
+    clean = bytearray()
+    cursor = 0
+    for match in pattern.finditer(data):
+        if match.start() >= limit:
+            break
+        clean.extend(data[cursor:match.start()])
+        clean.extend(b"[redacted]")
+        cursor = match.end()
+    if cursor < limit:
+        clean.extend(data[cursor:limit])
+        cursor = limit
+    return bytes(clean), data[cursor:]
 
 
-def scrub_secrets(run_dir, root, secret_values=()):
-    values = [*redaction_env_values(root), *secret_values]
-    secrets = [
-        value.encode() for value in sorted(_redaction_values(values), key=len, reverse=True)
-    ]
-    for directory in ("output", "logs", "report"):
-        base = Path(run_dir) / directory
-        if not base.is_dir():
-            continue
-        for path in base.rglob("*"):
-            if not path.is_file() or path.is_symlink():
-                continue
-            data = path.read_bytes()
-            clean = data
-            for value in secrets:
-                clean = clean.replace(value, b"[redacted]")
-            if clean != data:
-                path.write_bytes(clean)
+def copy_redacted(source, destination, values):
+    """Copy a stream with bounded memory while matching secrets across chunk edges."""
+    secrets = sorted({value.encode() for value in _redaction_values(values)}, key=len, reverse=True)
+    with Path(destination).open("wb") as target:
+        if not secrets:
+            shutil.copyfileobj(source, target, length=1024 * 1024)
+            return
+        pattern = re.compile(b"|".join(re.escape(value) for value in secrets))
+        pending = b""
+        while chunk := source.read(1024 * 1024):
+            data = pending + chunk
+            clean, pending = _redact_prefix(data, pattern, max(0, len(data) - len(secrets[0]) + 1))
+            target.write(clean)
+        clean, pending = _redact_prefix(pending, pattern, len(pending) + 1)
+        target.write(clean)
+        assert not pending
 
 
 def _wait(proc, timeout_sec=None):
@@ -200,10 +207,53 @@ def _wait(proc, timeout_sec=None):
         raise
 
 
+def _run_process(command, logs, values, timeout_sec=None, **kwargs):
+    """Run once, spool untrusted output off-ledger, then stream redacted logs."""
+    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        proc = subprocess.Popen(
+            command,
+            stdout=stdout,
+            stderr=stderr,
+            start_new_session=True,
+            **kwargs,
+        )
+        try:
+            return _wait(proc, timeout_sec)
+        finally:
+            for stream, name in ((stdout, "stdout"), (stderr, "stderr")):
+                stream.seek(0)
+                copy_redacted(stream, Path(logs) / f"script.{name}.log", values)
+
+
+def scrub_secrets(run_dir, root, secret_values=()):
+    values = [*redaction_env_values(root), *secret_values]
+    if not _redaction_values(values):
+        return
+    for directory in ("output", "logs", "report"):
+        base = Path(run_dir) / directory
+        if not base.is_dir():
+            continue
+        for path in base.rglob("*"):
+            if not path.is_file() or path.is_symlink():
+                continue
+            fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+            os.close(fd)
+            temp = Path(temp_name)
+            try:
+                with path.open("rb") as source:
+                    copy_redacted(source, temp, values)
+                shutil.copymode(path, temp)
+                temp.replace(path)
+            finally:
+                temp.unlink(missing_ok=True)
+
+
 def secret_source_paths(root):
     root = resolve_root(root)
     paths = [safe_repository_path(root, item["path"]) for item in manifest_files(root) if item["role"] == "secret-source" and item["available"]]
     default = repository_root(root) / ".env"
+    if default.is_symlink():
+        raise ValueError("default .env must not be a symlink")
     if default.is_file() and default not in paths:
         paths.append(default)
     return paths
@@ -212,29 +262,59 @@ def secret_source_paths(root):
 def run_script(run_dir, root=None, source_root=None, *, extra_env=None, secret_values=(), timeout_sec=None):
     root = resolve_root(root)
     source_root = root if source_root is None else Path(source_root)
+    extra_env = {str(key): str(value) for key, value in (extra_env or {}).items()}
+    if any(not ENV_NAME.fullmatch(key) or "\0" in value for key, value in extra_env.items()):
+        raise ValueError("Docker environment contains an invalid name or value")
     cfg = read_json(source_root / PROJECT_CONFIG)
     manifest = script_manifest(source_root)
     workdir = manifest["working_dir"].strip().replace("\\", "/").strip("/")
     sandbox = cfg["sandbox"]
+    image = manifest.get("image") or sandbox["image"]
+    if not isinstance(image, str) or not image or image.startswith("-") or any(char in image for char in "\r\n\0"):
+        raise ValueError("Docker image must be a non-empty image reference")
     container_name = f"autoexp-{Path(run_dir).name}"
-    cmd = ["docker", "run", "--rm", "--name", container_name, "--network", sandbox.get("network", "none"), "--cpus", str(sandbox.get("cpus", "1")), "--memory", sandbox.get("memory", "512m")]
+    cmd = [
+        "docker", "run", "--rm", "--init", "--name", container_name,
+        "--network", str(sandbox.get("network", "none")),
+        "--cpus", str(sandbox.get("cpus", "1")),
+        "--memory", str(sandbox.get("memory", "512m")),
+        "--pids-limit", str(sandbox.get("pids", "256")),
+        "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+        "--read-only", "--tmpfs", f"/tmp:rw,nosuid,nodev,noexec,size={sandbox.get('tmpfs_size', '256m')}",
+    ]
+    if hasattr(os, "getuid") and os.getuid() > 0:
+        cmd += ["--user", f"{os.getuid()}:{os.getgid()}"]
     for path in secret_source_paths(root):
         cmd += ["--env-file", str(path)]
-    for key, value in (extra_env or {}).items():
-        cmd += ["-e", f"{key}={value}"]
+    env_path = None
+    if extra_env:
+        if any("\n" in value or "\r" in value or "\0" in value for value in extra_env.values()):
+            raise ValueError("Docker environment values must not contain newlines")
+        fd, env_path = tempfile.mkstemp(prefix="autoexp-env-")
+        with os.fdopen(fd, "w") as handle:
+            for key, value in extra_env.items():
+                handle.write(f"{key}={value}\n")
+        cmd += ["--env-file", env_path]
     cmd += [
-        "-e", "AUTOEXP_OUTPUT_DIR=/workspace/run/output", "-e", "PYTHONDONTWRITEBYTECODE=1",
-        "-v", f"{source_root.resolve()}:/workspace/source:ro", "-v", f"{Path(run_dir).resolve()}:/workspace/run:rw",
+        "-e", "AUTOEXP_RUN_DIR=/workspace/run", "-e", "AUTOEXP_SCRIPT_DIR=/workspace/source",
+        "-e", "AUTOEXP_OUTPUT_DIR=/workspace/run/output", "-e", "HOME=/tmp",
+        "-e", "TMPDIR=/tmp", "-e", "PYTHONDONTWRITEBYTECODE=1",
+        "-v", f"{source_root.resolve()}:/workspace/source:ro",
+        "-v", f"{Path(run_dir).resolve()}:/workspace/run:ro",
+        "-v", f"{(Path(run_dir) / 'output').resolve()}:/workspace/run/output:rw",
+        "-v", f"{(Path(run_dir) / 'report').resolve()}:/workspace/run/report:rw",
         "-w", f"/workspace/source/{workdir}" if workdir != "." else "/workspace/source",
-        manifest.get("image", sandbox["image"]), "sh", "-lc", manifest["command"].replace("${CTX}", "/workspace/run/ctx.json"),
+        image, "sh", "-lc", manifest["command"].replace("${CTX}", "/workspace/run/ctx.json"),
     ]
     logs = Path(run_dir) / "logs"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
     try:
-        return _capture(proc, logs, [*redaction_env_values(root), *secret_values], timeout_sec)
+        return _run_process(cmd, logs, [*redaction_env_values(root), *secret_values], timeout_sec)
     except subprocess.TimeoutExpired:
         subprocess.run(["docker", "rm", "-f", container_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
         raise
+    finally:
+        if env_path:
+            Path(env_path).unlink(missing_ok=True)
 
 
 def docker_ready():
@@ -279,17 +359,33 @@ def local_workdir(manifest, run_dir, source_root):
 def run_script_local(run_dir, root=None, source_root=None, *, extra_env=None, secret_values=(), timeout_sec=None):
     root = resolve_root(root)
     source_root = root if source_root is None else Path(source_root)
+    extra_env = {str(key): str(value) for key, value in (extra_env or {}).items()}
+    if any(not ENV_NAME.fullmatch(key) or "\0" in value for key, value in extra_env.items()):
+        raise ValueError("local environment contains an invalid name or value")
     manifest = script_manifest(source_root)
     ctx_path = (Path(run_dir) / "ctx.json").resolve()
-    command = manifest["command"].replace("${CTX}", shlex.quote(str(ctx_path)))
+    quoted_context = subprocess.list2cmdline([str(ctx_path)]) if os.name == "nt" else shlex.quote(str(ctx_path))
+    command = manifest["command"].replace("${CTX}", quoted_context)
     for alias in ("python ", "python3 "):
         if command.startswith(alias):
-            command = f"{shlex.quote(sys.executable)} {command.removeprefix(alias)}"
+            executable = subprocess.list2cmdline([sys.executable]) if os.name == "nt" else shlex.quote(sys.executable)
+            command = f"{executable} {command.removeprefix(alias)}"
             break
-    env = os.environ | app_env(root) | (extra_env or {}) | {"AUTOEXP_RUN_DIR": str(Path(run_dir).resolve()), "AUTOEXP_SCRIPT_DIR": str(source_root.resolve()), "AUTOEXP_OUTPUT_DIR": str((Path(run_dir) / "output").resolve()), "PYTHONDONTWRITEBYTECODE": "1"}
+    base_env = {
+        key: value for key, value in os.environ.items()
+        if key in LOCAL_ENV_KEYS or key.startswith("LC_")
+    }
+    env = base_env | app_env(root) | extra_env | {"AUTOEXP_RUN_DIR": str(Path(run_dir).resolve()), "AUTOEXP_SCRIPT_DIR": str(source_root.resolve()), "AUTOEXP_OUTPUT_DIR": str((Path(run_dir) / "output").resolve()), "PYTHONDONTWRITEBYTECODE": "1"}
+    shell = [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/s", "/c", command] if os.name == "nt" else ["/bin/sh", "-c", command]
     logs = Path(run_dir) / "logs"
-    proc = subprocess.Popen(command, cwd=local_workdir(manifest, run_dir, source_root), env=env, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
-    return _capture(proc, logs, [*redaction_env_values(root), *secret_values], timeout_sec)
+    return _run_process(
+        shell,
+        logs,
+        [*redaction_env_values(root), *secret_values],
+        timeout_sec,
+        cwd=local_workdir(manifest, run_dir, source_root),
+        env=env,
+    )
 
 
 def runner_type(root, source_root=None):

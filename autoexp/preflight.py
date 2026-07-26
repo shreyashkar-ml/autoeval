@@ -74,10 +74,24 @@ def standard_preflight(root=None, source_root=None):
     add("runner", requested in {"local", "docker"}, "runner must be one of: local, docker")
     if isinstance(config, dict):
         add("runtime", isinstance(config.get("runtime", {}), dict), "runtime must be a JSON object")
+        if requested == "local":
+            add(
+                "local_isolation",
+                False,
+                "local runner executes trusted experiment code with the current user's filesystem access",
+                required=False,
+            )
         if requested == "docker":
             sandbox = config.get("sandbox")
             add("sandbox", isinstance(sandbox, dict), "sandbox must be a JSON object")
-            add("image", bool((manifest or {}).get("image") or (sandbox or {}).get("image")), "Docker runner requires an image")
+            image = (manifest or {}).get("image") or (sandbox or {}).get("image")
+            image_ok = (
+                isinstance(image, str)
+                and bool(image)
+                and not image.startswith("-")
+                and not any(char in image for char in "\r\n\0")
+            )
+            add("image", image_ok, "Docker runner requires a valid image reference")
             ok, message = docker_ready()
             add("docker", ok, message)
         guidance = config.get("report_instruction_file", PROJECT_REPORT_INSTRUCTIONS)

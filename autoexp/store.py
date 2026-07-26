@@ -6,12 +6,13 @@ import json
 import os
 import sqlite3
 import subprocess
-from pathlib import Path
+import threading
 
 from .workspace import (
     die,
     experiment_id,
     project_id,
+    private_dir,
     repo_data_dir,
     resolve_root,
     user_data_dir,
@@ -219,14 +220,29 @@ when old.category = 'report' or exists(
 ) begin select raise(abort, 'artifact is immutable'); end;
 """
 
+_INITIALIZED_DATABASES = set()
+_SCHEMA_LOCK = threading.Lock()
+
 
 def db(root=None):
     path = user_data_dir() / "state.sqlite"
-    path.parent.mkdir(parents=True, exist_ok=True)
+    private_dir(path.parent)
+    if not path.exists():
+        with _SCHEMA_LOCK:
+            _INITIALIZED_DATABASES.discard(path)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("pragma foreign_keys = on")
-    conn.executescript(SCHEMA)
+    conn.execute("pragma busy_timeout = 5000")
+    with _SCHEMA_LOCK:
+        if path not in _INITIALIZED_DATABASES:
+            conn.execute("pragma journal_mode = wal")
+            conn.executescript(SCHEMA)
+            _INITIALIZED_DATABASES.add(path)
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
     return conn
 
 
@@ -266,7 +282,7 @@ def require_autoexp_git_repo(root=None):
     git_dir = private_git_dir(root)
     if git_dir.is_dir():
         return git_dir
-    git_dir.parent.mkdir(parents=True, exist_ok=True)
+    private_dir(git_dir.parent)
     subprocess.run(
         ["git", "init", "--bare", str(git_dir)],
         check=True,
@@ -296,7 +312,7 @@ def current_autoexp_commit(root=None):
 def init_db(root=None):
     root = resolve_root(root)
     require_autoexp_git_repo(root)
-    (root / "runs").mkdir(parents=True, exist_ok=True)
+    private_dir(root / "runs")
     return root
 
 

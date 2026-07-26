@@ -31,7 +31,12 @@ def _hash_bytes(data):
 def _hash_file(path):
     if path.is_symlink():
         raise ValueError(f"source contains unsupported symlink: {path}")
-    return _hash_bytes(path.read_bytes()) if path.is_file() else _hash_bytes(b"")
+    digest = hashlib.sha256()
+    if path.is_file():
+        with path.open("rb") as handle:
+            while chunk := handle.read(1024 * 1024):
+                digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _hash_declared_source(source_root, config, *, include_types=True):
@@ -39,11 +44,9 @@ def _hash_declared_source(source_root, config, *, include_types=True):
     for item in sorted(config.get("files", []), key=lambda value: value.get("path", "")):
         if item.get("role") in {"secret-source", "generated-output"}:
             continue
-        rel = item.get("path", "")
-        path = source_root / rel
-        if path.is_symlink():
-            raise ValueError(f"source contains unsupported symlink: {rel}")
-        digest.update(rel.encode())
+        rel = ensure_within_project(item.get("path", ""), "snapshot path must stay inside its source tree")
+        path = _safe_change_path(source_root, rel)
+        digest.update(rel.as_posix().encode())
         digest.update(b"\0")
         if include_types and path.is_file():
             digest.update(b"file\0")
@@ -52,7 +55,9 @@ def _hash_declared_source(source_root, config, *, include_types=True):
         elif include_types:
             digest.update(b"missing\0")
         if path.is_file():
-            digest.update(path.read_bytes())
+            with path.open("rb") as handle:
+                while chunk := handle.read(1024 * 1024):
+                    digest.update(chunk)
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -69,7 +74,9 @@ def _legacy_snapshot_hashes(source_root, config):
         if path.is_file():
             digest.update(path.relative_to(script_dir).as_posix().encode())
             digest.update(b"\0")
-            digest.update(path.read_bytes())
+            with path.open("rb") as handle:
+                while chunk := handle.read(1024 * 1024):
+                    digest.update(chunk)
             digest.update(b"\0")
     runtime_config = {
         key: config.get(key)

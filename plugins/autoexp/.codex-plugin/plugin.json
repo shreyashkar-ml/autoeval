@@ -1,6 +1,6 @@
 {
   "name": "autoexp",
-  "version": "0.3.0+codex.20260717153347",
+  "version": "0.3.0+codex.20260725202620",
   "description": "Run agent-led experiments and open browser feedback reviews from existing repositories.",
   "author": {
     "name": "Shreyashkar Sahu",

@@ -7,6 +7,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -37,6 +38,16 @@ FILE_ROLES = {
     "secret-source",
 }
 SNAPSHOT_EXCLUDED_ROLES = {"generated-output", "secret-source"}
+DELETE_GUARD_TRIGGERS = (
+    "runs_terminal_no_delete",
+    "snapshots_immutable_no_delete",
+    "triggers_immutable_no_delete",
+    "documents_immutable_no_delete",
+    "milestones_immutable_no_delete",
+    "attempts_terminal_no_delete",
+    "inputs_terminal_no_delete",
+    "artifacts_immutable_no_delete",
+)
 
 
 def die(message):
@@ -69,6 +80,17 @@ def user_data_dir():
         return Path(base) / "autoexp" if base else Path.home() / ".autoexp"
     base = os.environ.get("XDG_DATA_HOME")
     return (Path(base) if base else Path.home() / ".local" / "share") / "autoexp"
+
+
+def private_dir(path):
+    """Create an Autoexp data directory that other local users cannot traverse."""
+    path = Path(path)
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    try:
+        path.chmod(0o700)
+    except OSError:
+        pass
+    return path
 
 
 def repo_data_dir(repo_id):
@@ -170,7 +192,7 @@ def register_repository(path=None, *, title=None):
     )
     conn.commit()
     conn.close()
-    repo_data_dir(repo_id).mkdir(parents=True, exist_ok=True)
+    private_dir(repo_data_dir(repo_id))
     return {"repo_id": repo_id, "title": display, "path": str(root)}
 
 
@@ -201,14 +223,43 @@ def create_experiment(
     if not isinstance(objective, str) or not objective.strip():
         raise ValueError("experiment objective is required")
 
-    repo = register_repository(root)
+    launch_dir = Path(root or Path.cwd()).expanduser().resolve()
+    repo_root = _git_root(launch_dir)
+
+    def repo_relative(value, label):
+        target = Path(value).expanduser()
+        target = target if target.is_absolute() else launch_dir / target
+        try:
+            rel = target.resolve(strict=False).relative_to(repo_root)
+        except ValueError as exc:
+            raise ValueError(f"{label} must stay inside the repository") from exc
+        _safe_repo_path(repo_root, rel)
+        return rel.as_posix()
+
+    entrypoint = repo_relative(entrypoint, "entrypoint") if entrypoint else None
+    if entrypoint and not (repo_root / entrypoint).is_file():
+        raise FileNotFoundError(f"entrypoint does not exist: {entrypoint}")
+    working_dir = (
+        repo_relative(working_dir, "working directory")
+        if working_dir
+        else Path(entrypoint).parent.as_posix() if entrypoint else "."
+    )
+    if not (repo_root / working_dir).is_dir():
+        raise FileNotFoundError(f"working directory does not exist: {working_dir}")
+    config = json.loads(json.dumps(config or {}))
+    research = config.get("autoresearch")
+    if isinstance(research, dict):
+        for item in research.get("files", []):
+            item["path"] = repo_relative(item["path"], f"{item.get('role', 'research')} file")
+
+    repo = register_repository(repo_root)
     display = (title or objective.strip().splitlines()[0])[:120]
     experiment_id = f"exp_{_slug(display)}_{uuid.uuid4().hex[:6]}"
     data_path = experiment_data_dir(repo["repo_id"], experiment_id)
     stage = {
         "name": Path(entrypoint).name if entrypoint else "",
         "command": command or (f"python {shlex.quote(Path(entrypoint).name)} --ctx ${{CTX}}" if entrypoint else ""),
-        "working_dir": working_dir or (Path(entrypoint).parent.as_posix() if entrypoint else "."),
+        "working_dir": working_dir,
         "interface_version": "1",
     }
     settings = {
@@ -221,7 +272,7 @@ def create_experiment(
         },
         "runtime": {},
         "external_inputs": [],
-        **(config or {}),
+        **config,
     }
     timestamp = now()
     conn = db()
@@ -249,8 +300,9 @@ def create_experiment(
     )
     conn.commit()
     conn.close()
+    private_dir(data_path)
     for name in ("runs", "reports", "insights"):
-        (data_path / name).mkdir(parents=True, exist_ok=True)
+        private_dir(data_path / name)
     if entrypoint:
         declare_file(experiment_id, entrypoint, "entrypoint")
     init_db(data_path)
@@ -261,13 +313,24 @@ def experiment_id(root=None):
     return _context(resolve_root(root))["experiment_id"]
 
 
+def _experiment_workdir(context):
+    stage = context["stage"] if isinstance(context["stage"], dict) else json.loads(context["stage"])
+    rel = Path(stage.get("working_dir") or ".")
+    repo = Path(context["repo_path"])
+    if rel.is_absolute() or ".." in rel.parts:
+        return None
+    path = (repo / rel).resolve(strict=False)
+    return path if path.is_relative_to(repo.resolve(strict=False)) else None
+
+
 def experiment_entry(root):
     context = _context(root)
     context["stage"] = json.loads(context["stage"])
     context["config"] = json.loads(context["config"])
     context["params"] = json.loads(context["params"])
     context["params_schema"] = json.loads(context["params_schema"])
-    context["exists"] = Path(context["repo_path"]).is_dir()
+    workdir = _experiment_workdir(context)
+    context["exists"] = bool(workdir and workdir.is_dir())
     context["mode"] = context["kind"]
     context["project_id"] = context["experiment_id"]
     context["path"] = context["repo_path"]
@@ -310,7 +373,239 @@ def registry():
     for repo in repos:
         repo["exists"] = Path(repo["path"]).is_dir()
         repo["experiments"] = by_repo.get(repo["repo_id"], [])
-    return repos
+    return [repo for repo in repos if repo["experiments"]]
+
+
+def _tree_size(path):
+    path = Path(path)
+    if not path.exists() or path.is_symlink():
+        return 0
+    return sum(
+        item.stat().st_size
+        for item in path.rglob("*")
+        if item.is_file() and not item.is_symlink()
+    )
+
+
+def _remove_global_tree(path):
+    path = Path(path)
+    base = user_data_dir().resolve()
+    if path.is_symlink() or not path.resolve(strict=False).is_relative_to(base):
+        raise ValueError(f"refusing to remove unsafe global storage path: {path}")
+    if path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        raise ValueError(f"global storage path is not a directory: {path}")
+
+
+def _purge_experiment(experiment_id_value):
+    """Delete one experiment during explicit storage maintenance."""
+    from .store import db
+
+    conn = db()
+    row = conn.execute(
+        """select e.*, r.path as repo_path
+           from experiments e join repositories r using(repo_id)
+           where e.experiment_id = ?""",
+        (experiment_id_value,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return None
+    item = dict(row)
+    expected = experiment_data_dir(item["repo_id"], item["experiment_id"])
+    if Path(item["data_path"]).resolve(strict=False) != expected.resolve(strict=False):
+        conn.close()
+        raise ValueError(f"unexpected experiment storage path: {item['data_path']}")
+    snapshot_ids = [
+        value[0]
+        for value in conn.execute(
+            "select snapshot_id from source_snapshots where experiment_id = ?",
+            (experiment_id_value,),
+        ).fetchall()
+    ]
+    trigger_rows = conn.execute(
+        f"""select name, sql from sqlite_master
+            where type = 'trigger' and name in
+              ({','.join('?' for _ in DELETE_GUARD_TRIGGERS)})""",
+        DELETE_GUARD_TRIGGERS,
+    ).fetchall()
+    try:
+        conn.execute("begin exclusive")
+        active = conn.execute(
+            """select
+                 (select count(*) from runs where experiment_id = ?
+                    and status in ('queued', 'running')) +
+                 (select count(*) from research_attempts a
+                    join research_contracts c using(contract_id)
+                    where c.experiment_id = ? and a.status = 'running') +
+                 (select count(*) from research_sessions s
+                    join research_contracts c using(contract_id)
+                    where c.experiment_id = ? and s.status = 'running')""",
+            (experiment_id_value, experiment_id_value, experiment_id_value),
+        ).fetchone()[0]
+        if active:
+            raise ValueError(f"experiment has {active} active operation(s)")
+        conn.execute("pragma defer_foreign_keys = on")
+        for name in DELETE_GUARD_TRIGGERS:
+            conn.execute(f"drop trigger if exists {name}")
+        contract_ids = "select contract_id from research_contracts where experiment_id = ?"
+        run_ids = "select run_id from runs where experiment_id = ?"
+        for statement in (
+            f"delete from research_attempts where contract_id in ({contract_ids})",
+            f"delete from research_sessions where contract_id in ({contract_ids})",
+            "delete from research_contracts where experiment_id = ?",
+            f"delete from artifacts where run_id in ({run_ids})",
+            f"delete from run_external_inputs where run_id in ({run_ids})",
+            "delete from documents where experiment_id = ?",
+            "delete from milestones where experiment_id = ?",
+            "delete from review_sessions where experiment_id = ?",
+            "delete from imports where experiment_id = ?",
+            "delete from runs where experiment_id = ?",
+            "delete from source_snapshots where experiment_id = ?",
+            "delete from triggers where experiment_id = ?",
+            "delete from manifest_files where experiment_id = ?",
+            "delete from experiments where experiment_id = ?",
+        ):
+            conn.execute(statement, (experiment_id_value,))
+        remaining = conn.execute(
+            "select count(*) from experiments where repo_id = ?",
+            (item["repo_id"],),
+        ).fetchone()[0]
+        if not remaining:
+            conn.execute("delete from repositories where repo_id = ?", (item["repo_id"],))
+        for trigger in trigger_rows:
+            conn.execute(trigger["sql"])
+        broken = conn.execute("pragma foreign_key_check").fetchone()
+        if broken:
+            raise ValueError(f"storage cleanup would break database references: {tuple(broken)}")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    if not remaining:
+        _remove_global_tree(repo_data_dir(item["repo_id"]))
+    else:
+        _remove_global_tree(expected)
+        git_dir = repo_data_dir(item["repo_id"]) / "repository"
+        if git_dir.is_dir() and not git_dir.is_symlink():
+            for snapshot_id in snapshot_ids:
+                subprocess.run(
+                    ["git", "--git-dir", str(git_dir), "update-ref", "-d", f"refs/autoexp/snapshots/{snapshot_id}"],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+            subprocess.run(
+                # ponytail: keep Git's default grace period; add repository locking
+                # before immediate pruning if stale objects become measurable.
+                ["git", "--git-dir", str(git_dir), "gc"],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+    return {
+        "experiment_id": item["experiment_id"],
+        "repo_id": item["repo_id"],
+        "title": item["title"],
+    }
+
+
+def sync_storage(*, prune=False):
+    """Audit global storage and optionally prune experiments missing their worktree."""
+    from .store import db
+
+    conn = db()
+    rows = conn.execute(
+        """select e.*, r.path as repo_path,
+             (select count(*) from runs where experiment_id = e.experiment_id
+                and status in ('queued', 'running')) +
+             (select count(*) from research_attempts a
+                join research_contracts c using(contract_id)
+                where c.experiment_id = e.experiment_id and a.status = 'running') +
+             (select count(*) from research_sessions s
+                join research_contracts c using(contract_id)
+                where c.experiment_id = e.experiment_id and s.status = 'running')
+               as active_operations
+           from experiments e join repositories r using(repo_id)
+           order by e.created_at, e.experiment_id"""
+    ).fetchall()
+    empty_repositories = [
+        {
+            **dict(row),
+            "stored_bytes": _tree_size(repo_data_dir(row["repo_id"])),
+        }
+        for row in conn.execute(
+            """select r.* from repositories r
+               where not exists(
+                 select 1 from experiments e where e.repo_id = r.repo_id
+               ) order by r.created_at, r.repo_id"""
+        ).fetchall()
+    ]
+    conn.close()
+    missing = []
+    for raw in rows:
+        item = dict(raw)
+        workdir = _experiment_workdir(item)
+        if workdir and workdir.is_dir():
+            continue
+        missing.append({
+            "experiment_id": item["experiment_id"],
+            "repo_id": item["repo_id"],
+            "title": item["title"],
+            "workdir": str(workdir) if workdir else None,
+            "reason": "repository missing" if not Path(item["repo_path"]).is_dir() else "working directory missing",
+            "stored_bytes": _tree_size(item["data_path"]),
+            "active": bool(item["active_operations"]),
+        })
+    before = _tree_size(user_data_dir())
+    pruned, pruned_repositories, errors = [], [], []
+    if prune:
+        for item in missing:
+            try:
+                pruned_item = _purge_experiment(item["experiment_id"])
+                if pruned_item:
+                    pruned.append(pruned_item)
+            except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+                errors.append({"experiment_id": item["experiment_id"], "error": str(exc)})
+        for item in empty_repositories:
+            cleanup = None
+            try:
+                cleanup = db()
+                deleted = cleanup.execute(
+                    """delete from repositories where repo_id = ?
+                       and not exists(
+                         select 1 from experiments where repo_id = ?
+                       )""",
+                    (item["repo_id"], item["repo_id"]),
+                ).rowcount
+                cleanup.commit()
+                if not deleted:
+                    continue
+                _remove_global_tree(repo_data_dir(item["repo_id"]))
+                pruned_repositories.append(item["repo_id"])
+            except (OSError, ValueError) as exc:
+                errors.append({"repo_id": item["repo_id"], "error": str(exc)})
+            finally:
+                if cleanup:
+                    cleanup.close()
+    after = _tree_size(user_data_dir())
+    return {
+        "data_root": str(user_data_dir()),
+        "stored_bytes": after,
+        "experiment_count": len(rows) - len(pruned),
+        "missing": missing,
+        "empty_repositories": empty_repositories,
+        "pruned": pruned,
+        "pruned_repositories": pruned_repositories,
+        "reclaimed_bytes": max(0, before - after),
+        "errors": errors,
+    }
 
 
 def resolve_root(root=None, experiment=None):
@@ -327,13 +622,25 @@ def resolve_root(root=None, experiment=None):
             raise ValueError(f"experiment {wanted} belongs to another repository")
         return Path(context["data_path"])
 
-    repo = register_repository(root or Path.cwd())
+    location = Path(root or Path.cwd()).expanduser().resolve()
+    repo = register_repository(location)
     items = list_experiments(repo["repo_id"])
     if not items:
         raise ValueError(
             "this repository has no Autoexp experiment; run "
             "`autoexp experiment create \"<objective>\"`"
         )
+    items = [item for item in items if item["exists"]]
+    if not items:
+        raise ValueError("this repository has no available Autoexp experiment; run `autoexp sync`")
+    repo_root = Path(repo["path"])
+    matches = []
+    for item in items:
+        workdir = repo_root / item["stage"].get("working_dir", ".")
+        if location == workdir or location.is_relative_to(workdir):
+            matches.append((len(workdir.parts), item))
+    if matches:
+        return Path(max(matches, key=lambda match: match[0])[1]["data_path"])
     return Path(items[0]["data_path"])
 
 
@@ -372,8 +679,13 @@ def _secret_keys(path):
     return keys
 
 
-def _file_hash(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+def file_hash(path):
+    """Hash a file without loading it into memory."""
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        while chunk := handle.read(1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def declare_file(root, path, role, *, description=""):
@@ -385,7 +697,7 @@ def declare_file(root, path, role, *, description=""):
     rel = ensure_within_project(path, "file path must stay inside the repository").as_posix()
     target = _safe_repo_path(Path(context["repo_path"]), rel)
     secret_keys = _secret_keys(target) if role == "secret-source" else []
-    digest = None if role == "secret-source" else _file_hash(target)
+    digest = None if role == "secret-source" or not target.is_file() else file_hash(target)
     conn = db()
     conn.execute(
         """insert into manifest_files(
@@ -438,7 +750,7 @@ def manifest_files(root=None, *, refresh=True):
         target = _safe_repo_path(repo_root, item["path"])
         if refresh:
             keys = _secret_keys(target) if item["role"] == "secret-source" else []
-            digest = None if item["role"] == "secret-source" else _file_hash(target)
+            digest = None if item["role"] == "secret-source" or not target.is_file() else file_hash(target)
             available = int(target.is_file())
             conn.execute(
                 """update manifest_files set content_hash = ?, available = ?,
@@ -560,7 +872,7 @@ def materialize_workspace(root, destination):
         source = _safe_repo_path(repo_root, item["path"])
         target = destination / item["path"]
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(source.read_bytes())
+        shutil.copyfile(source, target)
 
     config = experiment_config(context_root)
     write_json(destination / PROJECT_CONFIG, config)
