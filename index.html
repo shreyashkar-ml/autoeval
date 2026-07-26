@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Local-first experimentation infrastructure for coding agents.">
+  <meta property="og:title" content="Autoexp">
+  <meta property="og:description" content="Run reproducible experiments from your coding agent, review the evidence, and send structured feedback directly back.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://autoexp.dev">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%230c0c0b%22/><circle cx=%2224%22 cy=%2223%22 r=%228%22 fill=%22%23f2efe7%22/><circle cx=%2242%22 cy=%2241%22 r=%228%22 fill=%22%2362a7ff%22/></svg>">
+  <link rel="stylesheet" href="/style.css">
+  <meta name="theme-color" content="#0c0c0b">
+  <title>Autoexp - experimentation infrastructure for coding agents</title>
+</head>
+<body>
+  <header class="nav shell">
+    <a class="brand" href="#" aria-label="Autoexp home">auto<span>exp</span></a>
+    <nav aria-label="Main navigation">
+      <a href="#product">Product</a>
+      <a href="#how">How it works</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
+    </nav>
+  </header>
+
+  <main class="column">
+    <section class="hero" id="install">
+      <div class="eyebrow">Local-first experimentation for coding agents</div>
+      <h1>Run agent-led experiments.<br><em>Stay in the loop.</em></h1>
+      <p>Preserve every result, review the evidence, and send structured feedback directly back to the waiting agent.</p>
+      <div class="hero-installer">
+        <span class="installer-label">Install and connect</span>
+        <div class="agent-tabs" role="group" aria-label="Coding agent">
+          <button class="agent-tab active" type="button" data-agent="codex" aria-pressed="true">
+            <img src="/assets/agents/codex.png" alt=""><span>Codex</span>
+          </button>
+          <button class="agent-tab" type="button" data-agent="claude" aria-pressed="false">
+            <img src="/assets/agents/claude.svg" alt=""><span>Claude Code</span>
+          </button>
+          <button class="agent-tab" type="button" data-agent="opencode" aria-pressed="false">
+            <img src="/assets/agents/opencode.svg" alt=""><span>OpenCode</span>
+          </button>
+          <button class="agent-tab" type="button" data-agent="pi" aria-pressed="false">
+            <img src="/assets/agents/pi.svg" alt=""><span>Pi</span>
+          </button>
+        </div>
+        <div class="command">
+          <span>$</span>
+          <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
+          <button class="copy" type="button" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
+        </div>
+        <div class="agent-panel" aria-live="polite">
+          <div>
+            <strong id="agent-name">Codex</strong>
+            <span id="agent-note">Add the Autoexp plugin, then restart Codex.</span>
+          </div>
+          <pre id="agent-command">codex plugin marketplace add shreyashkar-ml/autoexp
+codex plugin add autoexp@autoexp</pre>
+          <button class="copy" type="button" id="agent-copy" data-copy="codex plugin marketplace add shreyashkar-ml/autoexp&#10;codex plugin add autoexp@autoexp">copy</button>
+        </div>
+        <a class="github-link" href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
+      </div>
+    </section>
+
+    <section class="promise">
+      <p>One loop: start the work, preserve the evidence, review it, then steer the next attempt.</p>
+      <ol class="workflow-line">
+        <li><b>/autoexp</b><span>Start from an objective</span></li>
+        <li><b>Run ledger</b><span>Preserve exact evidence</span></li>
+        <li><b>/autoexp-review</b><span>Inspect in the browser</span></li>
+        <li><b>Agent resumes</b><span>Feedback becomes the next instruction</span></li>
+      </ol>
+    </section>
+
+    <section id="product" class="workflow-feature">
+      <div class="feature-copy">
+        <div class="command-label"><code>/autoexp</code><span>Start and run</span></div>
+        <h2>Turn a goal into<br>a real experiment.</h2>
+        <p>Invoke <code>/autoexp &lt;objective&gt;</code> in an existing repository. Your agent defines the boundary, uses the code and data already there, and runs the work through Autoexp.</p>
+        <ul>
+          <li>Standard experiments or metric-driven Autoresearch</li>
+          <li>Source, inputs, logs, outputs, and reports preserved per run</li>
+          <li>Rerun, restore, and compare exact attempts</li>
+          <li>Reports and recommendations grounded in recorded evidence</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Experiment session</span></div>
+        <button class="shot" type="button" data-image="/assets/autoresearch_demo.png" aria-label="Zoom Autoexp experiment screenshot">
+          <img src="/assets/autoresearch_demo.png" alt="Autoexp experiment attempt ledger, metrics, and source changes">
+        </button>
+      </div>
+    </section>
+
+    <section class="workflow-feature reverse">
+      <div class="feature-visual review-visual">
+        <div class="window-bar"><i></i><i></i><i></i><span>Autoexp · Browser feedback review</span></div>
+        <button class="shot" type="button" data-image="/assets/autoexp_demo.png" aria-label="Zoom Autoexp browser review screenshot">
+          <img src="/assets/autoexp_demo.png" alt="Autoexp browser review showing experiment evidence and artifacts">
+        </button>
+        <span class="review-callout">Send follow-up to agent</span>
+      </div>
+      <div class="feature-copy">
+        <div class="command-label"><code>/autoexp-review</code><span>Inspect and steer</span></div>
+        <h2>Review the evidence.<br>Send the next move.</h2>
+        <p>Invoke <code>/autoexp-review</code> to inspect results or redirect the work. Autoexp opens a local review session and pauses the agent until you submit feedback.</p>
+        <ul>
+          <li>Inspect source, diffs, logs, reports, and rendered artifacts</li>
+          <li>Review CSV tables, images, metrics, and run lineage</li>
+          <li>Attach scoped notes to what you are viewing</li>
+          <li>Submit once; feedback returns directly to the waiting agent</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="how" class="how">
+      <div class="how-heading">
+        <h2>Two commands.<br>One experiment loop.</h2>
+        <div class="workflow-tabs" role="group" aria-label="Workflow">
+          <button class="workflow-tab active" type="button" data-workflow="run" aria-pressed="true">/autoexp</button>
+          <button class="workflow-tab" type="button" data-workflow="review" aria-pressed="false">/autoexp-review</button>
+        </div>
+      </div>
+      <div class="loop" aria-live="polite">
+        <div><b>1</b><strong id="loop-one">State the objective</strong><span id="loop-one-note">Tell the agent what to test, compare, or optimize.</span></div>
+        <i>→</i>
+        <div><b>2</b><strong id="loop-two">The agent runs the work</strong><span id="loop-two-note">It builds on your repository and executes focused attempts.</span></div>
+        <i>→</i>
+        <div><b>3</b><strong id="loop-three">Autoexp seals the evidence</strong><span id="loop-three-note">Every result stays tied to the exact source and inputs.</span></div>
+      </div>
+      <div class="steps">
+        <article><b>1</b><h3>Start inside your repository</h3><p>Use your coding agent normally. Autoexp reuses the implementation, data, evaluators, and constraints already present.</p></article>
+        <article><b>2</b><h3>Review on a real surface</h3><p>Launch the blocking browser review when terminal output is not enough. The agent waits while you inspect the complete record.</p></article>
+        <article><b>3</b><h3>Feedback flows back</h3><p>Submit scoped notes once. The agent receives them as its next instruction and continues the same experimentation session.</p></article>
+      </div>
+    </section>
+
+    <section class="archive">
+      <div>
+        <h2>Every project.<br>One read-only view.</h2>
+      </div>
+      <div>
+        <code>$ autoexp view</code>
+        <p>Open all registered experiments and research projects in one local dashboard. Browse and download runs, artifacts, reports, metrics, and diffs without attaching a feedback capability.</p>
+        <small>Use <b>autoexp view</b> for history. Use <b>/autoexp-review</b> when the agent should wait for your feedback.</small>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Organize and supercharge your AI-led experimentations</h2>
+      <div>
+        <a class="primary" href="#install">Install</a>
+        <a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell">
+    <a class="brand" href="#">auto<span>exp</span></a>
+    <p>Local autonomous experimentation.</p>
+    <div><a href="https://github.com/shreyashkar-ml/autoexp">GitHub</a><a href="https://github.com/shreyashkar-ml/autoexp/blob/main/LICENSE">Apache 2.0</a></div>
+  </footer>
+
+  <dialog class="lightbox" aria-label="Expanded screenshot">
+    <form method="dialog"><button class="lightbox-close">Close</button></form>
+    <img src="" alt="">
+  </dialog>
+
+  <script>
+    const agents = {
+      codex: {
+        name: "Codex",
+        note: "Add the Autoexp plugin, then restart Codex.",
+        command: "codex plugin marketplace add shreyashkar-ml/autoexp\ncodex plugin add autoexp@autoexp"
+      },
+      claude: {
+        name: "Claude Code",
+        note: "Add the Autoexp plugin, then restart Claude Code.",
+        command: "claude plugin marketplace add shreyashkar-ml/autoexp\nclaude plugin install autoexp@autoexp"
+      },
+      opencode: {
+        name: "OpenCode",
+        note: "The runtime installer already added the command and agent.",
+        command: "Restart OpenCode, then run  /autoexp <objective>"
+      },
+      pi: {
+        name: "Pi",
+        note: "The runtime installer already added the prompt.",
+        command: "Restart Pi, then run  /autoexp <objective>"
+      }
+    };
+    const name = document.querySelector("#agent-name");
+    const note = document.querySelector("#agent-note");
+    const command = document.querySelector("#agent-command");
+    const agentCopy = document.querySelector("#agent-copy");
+    const lightbox = document.querySelector(".lightbox");
+    const lightboxImage = lightbox.querySelector("img");
+    const workflows = {
+      run: [
+        ["State the objective", "Tell the agent what to test, compare, or optimize."],
+        ["The agent runs the work", "It builds on your repository and executes focused attempts."],
+        ["Autoexp seals the evidence", "Every result stays tied to the exact source and inputs."]
+      ],
+      review: [
+        ["Invoke /autoexp-review", "A short-lived local review opens for the active experiment."],
+        ["Inspect while the agent waits", "Review artifacts, reports, source, logs, metrics, and diffs."],
+        ["Send one feedback batch", "Your scoped notes return directly to the agent and it resumes."]
+      ]
+    };
+
+    document.querySelectorAll(".agent-tab").forEach(tab => tab.addEventListener("click", () => {
+      document.querySelectorAll(".agent-tab").forEach(item => {
+        item.classList.toggle("active", item === tab);
+        item.setAttribute("aria-pressed", item === tab);
+      });
+      const agent = agents[tab.dataset.agent];
+      name.textContent = agent.name;
+      note.textContent = agent.note;
+      command.textContent = agent.command;
+      agentCopy.dataset.copy = agent.command;
+    }));
+
+    document.querySelectorAll(".copy").forEach(button => button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy);
+        button.textContent = "copied";
+      } catch {
+        button.textContent = "failed";
+      }
+      setTimeout(() => button.textContent = "copy", 1400);
+    }));
+
+    document.querySelectorAll(".workflow-tab").forEach(tab => tab.addEventListener("click", () => {
+      document.querySelectorAll(".workflow-tab").forEach(item => {
+        item.classList.toggle("active", item === tab);
+        item.setAttribute("aria-pressed", item === tab);
+      });
+      workflows[tab.dataset.workflow].forEach((step, index) => {
+        document.querySelector(`#loop-${["one", "two", "three"][index]}`).textContent = step[0];
+        document.querySelector(`#loop-${["one", "two", "three"][index]}-note`).textContent = step[1];
+      });
+    }));
+
+    document.querySelectorAll(".shot").forEach(shot => shot.addEventListener("click", () => {
+      const image = shot.querySelector("img");
+      lightboxImage.src = shot.dataset.image;
+      lightboxImage.alt = image.alt;
+      lightbox.showModal();
+    }));
+
+    lightbox.addEventListener("click", event => {
+      if (event.target === lightbox) lightbox.close();
+    });
+  </script>
+</body>
+</html>
