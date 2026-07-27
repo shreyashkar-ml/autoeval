@@ -9,7 +9,6 @@
   "homepage": "https://autoexp.dev",
   "repository": "https://github.com/shreyashkar-ml/autoexp",
   "license": "Apache-2.0",
-  "skills": "./skills/",
   "interface": {
     "displayName": "Autoexp",
     "shortDescription": "Run experiments and review evidence",

@@ -80,10 +80,6 @@ if [[ -z "$source_dir" ]]; then
     adapters/claude/skills/autoexp-review/SKILL.md
     adapters/codex/.codex-plugin/plugin.json
     adapters/codex/hooks/hooks.json
-    adapters/codex/skills/autoexp/SKILL.md
-    adapters/codex/skills/autoexp/agents/openai.yaml
-    adapters/codex/skills/autoexp-review/SKILL.md
-    adapters/codex/skills/autoexp-review/agents/openai.yaml
     adapters/opencode-plugin/package.json
     adapters/opencode-plugin/index.ts
     adapters/opencode-plugin/bridge.ts

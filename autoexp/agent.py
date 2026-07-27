@@ -579,7 +579,7 @@ def execute(binding_id, argv):
 
 
 def hook_event(agent, event):
-    """Handle lifecycle and Codex's exact review prompt hook."""
+    """Handle lifecycle and Codex's native Autoexp prompt hooks."""
     name = event.get("hook_event_name")
     session_id = event.get("session_id")
     repo = event.get("cwd")
@@ -608,7 +608,24 @@ def hook_event(agent, event):
         lifecycle(agent, session_id, "shutdown", repo)
         return {}
     if agent == "codex" and name == "UserPromptSubmit":
-        parts = str(event.get("prompt") or "").strip().split()
+        prompt = str(event.get("prompt") or "").strip()
+        command, _, argument = prompt.partition(" ")
+        if command == "$autoexp":
+            data = context("codex", session_id, repo, argument.strip())
+            return {
+                "hookSpecificOutput": {
+                    "hookEventName": "UserPromptSubmit",
+                    "additionalContext": (
+                        "[AUTOEXP PROTOCOL v1]\n"
+                        f"Binding: {data['binding_id']}\n"
+                        f"Repository: {data['repository']['path']}\n"
+                        f"Objective: {data['objective'] or '(not supplied)'}\n"
+                        f"Command prefix: {' '.join(data['exec_argv_prefix'])}\n\n"
+                        f"{data['instruction']}"
+                    ),
+                }
+            }
+        parts = prompt.split()
         if (
             not parts
             or parts[0] != "$autoexp-review"

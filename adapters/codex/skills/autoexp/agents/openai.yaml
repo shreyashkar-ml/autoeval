@@ -1,4 +1,0 @@
-interface:
-  display_name: "Autoexp"
-  short_description: "Start reproducible agent-led experiments"
-  default_prompt: "Start a focused Autoexp experiment in this repository."

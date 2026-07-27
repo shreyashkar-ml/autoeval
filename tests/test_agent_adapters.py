@@ -21,12 +21,18 @@ def test_native_adapter_files_are_complete():
     )
     assert marketplace["plugins"][0]["source"]["path"] == "./adapters/codex"
 
-    for host in ("codex", "claude"):
-        root = ROOT / "adapters" / host
-        assert json.loads(next(root.glob(".*-plugin/plugin.json")).read_text())["name"] == "autoexp"
-        json.loads((root / "hooks/hooks.json").read_text())
-        assert (root / "skills/autoexp/SKILL.md").is_file()
-        assert (root / "skills/autoexp-review/SKILL.md").is_file()
+    codex = ROOT / "adapters/codex"
+    codex_manifest = json.loads((codex / ".codex-plugin/plugin.json").read_text())
+    assert codex_manifest["name"] == "autoexp"
+    assert "skills" not in codex_manifest
+    assert not (codex / "skills").exists()
+    json.loads((codex / "hooks/hooks.json").read_text())
+
+    claude = ROOT / "adapters/claude"
+    assert json.loads((claude / ".claude-plugin/plugin.json").read_text())["name"] == "autoexp"
+    json.loads((claude / "hooks/hooks.json").read_text())
+    assert (claude / "skills/autoexp/SKILL.md").is_file()
+    assert (claude / "skills/autoexp-review/SKILL.md").is_file()
 
     for host in ("opencode-plugin", "pi-extension"):
         root = ROOT / "adapters" / host
@@ -105,16 +111,20 @@ def test_codex_hook_injects_review_feedback(monkeypatch):
     }) == {}
 
 
-def test_codex_review_has_a_sessionless_fallback():
-    text = (
-        ROOT / "adapters/codex/skills/autoexp-review/SKILL.md"
-    ).read_text()
-    metadata = (
-        ROOT / "adapters/codex/skills/autoexp-review/agents/openai.yaml"
-    ).read_text()
-    assert "autoexp review" in text
-    assert "<current Codex session ID>" not in text
-    assert "allow_implicit_invocation: false" not in metadata
+def test_codex_hook_injects_experiment_workflow(tmp_path, monkeypatch):
+    monkeypatch.setenv("AUTOEXP_HOME", str(tmp_path / "home"))
+    repo = git_repo(tmp_path / "repo")
+
+    result = hook_event("codex", {
+        "hook_event_name": "UserPromptSubmit",
+        "session_id": "session-1",
+        "cwd": str(repo),
+        "prompt": "$autoexp compare parsers",
+    })
+
+    context_text = result["hookSpecificOutput"]["additionalContext"]
+    assert "Objective: compare parsers" in context_text
+    assert "autoexp agent exec --binding-id" in context_text
 
 
 def test_source_installer_uses_local_runtime_and_removes_legacy_skills(
