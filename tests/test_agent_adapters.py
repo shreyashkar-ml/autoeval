@@ -109,8 +109,12 @@ def test_codex_review_has_a_sessionless_fallback():
     text = (
         ROOT / "adapters/codex/skills/autoexp-review/SKILL.md"
     ).read_text()
+    metadata = (
+        ROOT / "adapters/codex/skills/autoexp-review/agents/openai.yaml"
+    ).read_text()
     assert "autoexp review" in text
     assert "<current Codex session ID>" not in text
+    assert "allow_implicit_invocation: false" not in metadata
 
 
 def test_source_installer_uses_local_runtime_and_removes_legacy_skills(
