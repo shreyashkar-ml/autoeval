@@ -7,7 +7,10 @@ uninstall="${AUTOEXP_UNINSTALL:-0}"
 [[ "${1:-}" == "--uninstall" ]] && uninstall=1
 
 command -v install >/dev/null || { echo "autoexp installer requires install" >&2; exit 1; }
-[[ -z "$source_dir" ]] && command -v curl >/dev/null || true
+if [[ -z "$source_dir" ]]; then
+  command -v curl >/dev/null || { echo "autoexp installer requires curl" >&2; exit 1; }
+  command -v git >/dev/null || { echo "autoexp installer requires git" >&2; exit 1; }
+fi
 [[ "$skip_runtime" == 1 ]] || command -v uv >/dev/null || {
   echo "autoexp installer requires uv" >&2
   exit 1
@@ -17,6 +20,10 @@ codex_home="${CODEX_HOME:-$HOME/.codex}"
 claude_home="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 opencode_home="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 pi_home="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+legacy_skills="${AUTOEXP_CODEX_SKILLS_DIR:-$HOME/.agents/skills}"
+
+# Remove pre-0.4 shared-skill installs; native adapters own command discovery now.
+rm -rf "$legacy_skills/autoexp" "$legacy_skills/autoexp-review"
 
 if [[ "$uninstall" == 1 ]]; then
   command -v codex >/dev/null && codex plugin remove autoexp@autoexp >/dev/null 2>&1 || true
@@ -50,6 +57,18 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 if [[ -z "$source_dir" ]]; then
+  if [[ "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
+    ref="${ref,,}"
+  else
+    ref="$(
+      git ls-remote "${repo}.git" "$ref" "refs/heads/$ref" "refs/tags/$ref^{}" "refs/tags/$ref" |
+        awk '$2 ~ /\^\{\}$/ { print $1; found=1; exit } !found && !commit { commit=$1 } END { if (!found) print commit }'
+    )"
+    [[ -n "$ref" ]] || {
+      echo "autoexp installer could not resolve AUTOEXP_REF" >&2
+      exit 1
+    }
+  fi
   raw="https://raw.githubusercontent.com/shreyashkar-ml/autoexp/$ref"
   source_dir="$tmp/source"
   files=(

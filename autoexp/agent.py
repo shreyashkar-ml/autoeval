@@ -21,6 +21,33 @@ from .workspace import (
 
 PROTOCOL_VERSION = 1
 AGENTS = {"claude", "codex", "opencode", "pi"}
+WORKFLOW_INSTRUCTION = """\
+Use Autoexp for this repository and run every Autoexp command through the
+supplied argv prefix. Do not create repository-local Autoexp configuration,
+run directories, or generated reports.
+
+Inspect the repository and objective first. Use Standard mode unless one stable
+scalar metric and a frozen evaluator can automatically decide keep versus
+revert. Create or select one experiment; creating it binds it to this session.
+
+For Standard experiments, keep shared fixtures and evaluation in one small
+harness. Put each independently runnable or functionally separable approach in
+its own descriptively named source file, declare every relevant file before its
+first run, and record each focused variant with `run --agent --title`. If the
+objective explicitly calls for iterations on one implementation, keep that file
+and verify that each later run has a non-empty diff against the preceding run.
+
+For Autoresearch, use ordinary repository files for the program, candidate, and
+frozen evaluator. Run `research preflight`, change only the candidate, and record
+one focused hypothesis per `research attempt`. Never edit the evaluator; a
+changed evaluator or objective starts a new experiment.
+
+Before writing reports, read `report-instruction`. Mark only decision-changing,
+surprising, or new-best evidence as a milestone. Kept Autoresearch attempts are
+reported automatically. End Standard experimentation with one concise overall
+report attached without a run ID. Preserve all immutable evidence and cite the
+run IDs supporting the conclusion. Never open a browser review unless the user
+explicitly invokes the review workflow."""
 
 
 class AgentError(ValueError):
@@ -192,18 +219,12 @@ def context(agent, session_id, repo, objective=""):
         selected = None
     objective = str(objective or "").strip()
     prefix = ["autoexp", "agent", "exec", "--binding-id", binding["binding_id"], "--"]
-    instruction = (
-        "Use Autoexp for this repository. Resolve Standard versus Autoresearch, "
-        "then run every Autoexp command through the supplied argv prefix. "
-        "Create or select one experiment, bind it to this session, preserve "
-        "immutable run evidence, and cite the run IDs supporting the conclusion."
-    )
     return {
         "binding_id": binding["binding_id"],
         "repository": bound["repository"],
         "objective": objective,
         "experiment": _experiment_summary(selected) if selected else None,
-        "instruction": instruction,
+        "instruction": WORKFLOW_INSTRUCTION,
         "exec_argv_prefix": prefix,
     }
 

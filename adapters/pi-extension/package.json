@@ -1,6 +1,6 @@
 {
   "name": "@autoexp/pi-extension",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "Native Autoexp commands for Pi",
   "license": "Apache-2.0",

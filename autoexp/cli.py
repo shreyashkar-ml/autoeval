@@ -6,6 +6,7 @@ import tempfile
 import webbrowser
 from urllib.parse import quote
 
+from . import __version__
 from .reports import add_document, mark_milestone, report_instruction, set_report_instruction
 from .review import create_review_session, wait_for_review
 from .runtime import diff_runs, doctor, list_runs
@@ -337,6 +338,7 @@ def add_selector(parser):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog="autoexp")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(required=True)
 
     experiment = sub.add_parser("experiment", help="create and inspect global experiment records")

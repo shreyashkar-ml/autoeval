@@ -92,6 +92,12 @@ the experiment.
 Use `autoexp view` to browse and download experiments, runs, artifacts, reports,
 metrics, and diffs in one place.
 
+### Execution trust boundary
+
+The local runner executes trusted experiment code as your operating-system user; it is not a sandbox. Use the Docker runner for generated or untrusted programs. Docker runs drop capabilities, prevent privilege escalation, use read-only source/run mounts, and expose only output/report directories as writable, but they may still have network access if enabled and are not a hardened multi-tenant sandbox.
+
+Runs receive only declared, file-backed, or explicitly supplied environment values. Autoexp redacts known raw secret values from recorded evidence, but cannot recognize encoded, hashed, split, or transformed secrets. Use short-lived, least-privilege credentials and review evidence before publishing it.
+
 ## Direct CLI reference
 
 Use these commands for history, automation, and direct control:
@@ -109,8 +115,9 @@ Use these commands for history, automation, and direct control:
 ## Local data and secrets
 
 Autoexp stores experiment history and restorable snapshots locally. Repository
-files stay in their original locations. Review screens display recorded
-content, so keep sensitive values outside experiment outputs.
+files stay in their original locations. Declared secret-source files are
+excluded from snapshots and browser reads. Review screens display recorded
+outputs, so keep sensitive values outside experiment outputs.
 
 Default data directory:
 
