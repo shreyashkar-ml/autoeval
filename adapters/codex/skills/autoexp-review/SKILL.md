@@ -14,9 +14,9 @@ If the sentinel is absent, the native hook is disabled or unavailable. Use the
 compatible fallback once:
 
 ```bash
-autoexp agent review start --agent codex --session-id '<current Codex session ID>' --repo "$PWD" --json
-autoexp agent review wait '<operation-id>' --timeout 900 --json
+autoexp review
 ```
 
-Treat submitted notes as the user's next instruction. Approval and dismissal are
-terminal for this invocation. Never launch a second review.
+Wait for the command to return, acknowledge submitted notes immediately, then
+treat them as the user's next instruction. Approval and dismissal are terminal
+for this invocation. Never launch a second review.

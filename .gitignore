@@ -12,7 +12,9 @@ dist/
 venv/
 .env
 node_modules/
-tests/
+tests/*
+!tests/test_review_regressions.py
+!tests/test_agent_adapters.py
 technical_overview.md
 
 # Generated Autoexp projects used during local testing
