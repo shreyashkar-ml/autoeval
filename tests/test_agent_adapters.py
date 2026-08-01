@@ -44,6 +44,19 @@ def test_native_adapter_files_are_complete():
         assert (root / "index.test.ts").is_file()
 
 
+def test_review_commands_use_host_native_launch_paths():
+    codex = (ROOT / ".agents/skills/autoexp-review/SKILL.md").read_text()
+    claude = (ROOT / "adapters/claude/skills/autoexp-review/SKILL.md").read_text()
+    opencode = (ROOT / "adapters/opencode-plugin/index.ts").read_text()
+    pi = (ROOT / "adapters/pi-extension/index.ts").read_text()
+
+    assert "Do not run a shell fallback" in codex
+    assert "!`autoexp agent review claude" in claude
+    assert '"command.execute.before"' in opencode
+    assert '"autoexp-review"' in opencode
+    assert 'pi.registerCommand("autoexp-review"' in pi
+
+
 def test_cli_reports_release_version():
     result = subprocess.run(
         [os.sys.executable, "-m", "autoexp", "--version"],

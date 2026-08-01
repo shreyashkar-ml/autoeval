@@ -7,9 +7,9 @@ description: Open the native Autoexp browser review for the active experiment.
 
 This skill is user-triggered only.
 
-If the current prompt includes `[AUTOEXP PROTOCOL v1]` context for this Codex
-session, use that result and do not launch another review.
+The native Codex `UserPromptSubmit` hook handles this command before the model
+runs. Use the injected `[AUTOEXP PROTOCOL v1]` result and never launch another
+review.
 
-If the sentinel is absent, the native hook is disabled or unavailable. Run
-`autoexp review` once, wait for it to return, and treat submitted notes as the
-user's next instruction. Never launch a second review for this invocation.
+If that protocol result is absent, report that the native Autoexp hook is
+unavailable. Do not run a shell fallback.
