@@ -27,6 +27,7 @@ def test_native_adapter_files_are_complete():
     assert "skills" not in codex_manifest
     assert not (codex / "skills").exists()
     json.loads((codex / "hooks/hooks.json").read_text())
+    assert (ROOT / ".agents/skills/autoexp-review/SKILL.md").is_file()
 
     claude = ROOT / "adapters/claude"
     assert json.loads((claude / ".claude-plugin/plugin.json").read_text())["name"] == "autoexp"
@@ -127,7 +128,7 @@ def test_codex_hook_injects_experiment_workflow(tmp_path, monkeypatch):
     assert "autoexp agent exec --binding-id" in context_text
 
 
-def test_source_installer_uses_local_runtime_and_removes_legacy_skills(
+def test_source_installer_exposes_only_review_as_a_shared_codex_skill(
     tmp_path,
 ):
     home = tmp_path / "home"
@@ -157,7 +158,9 @@ def test_source_installer_uses_local_runtime_and_removes_legacy_skills(
         f"tool install --force --no-cache {ROOT}"
     )
     assert not (legacy / "autoexp").exists()
-    assert not (legacy / "autoexp-review").exists()
+    assert (legacy / "autoexp-review/SKILL.md").read_text() == (
+        ROOT / ".agents/skills/autoexp-review/SKILL.md"
+    ).read_text()
 
 
 def test_remote_installer_fetches_one_resolved_commit(tmp_path):
