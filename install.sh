@@ -20,10 +20,10 @@ codex_home="${CODEX_HOME:-$HOME/.codex}"
 claude_home="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 opencode_home="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 pi_home="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
-legacy_skills="${AUTOEXP_CODEX_SKILLS_DIR:-$HOME/.agents/skills}"
+codex_skills="${AUTOEXP_CODEX_SKILLS_DIR:-$HOME/.agents/skills}"
 
-# Remove pre-0.4 shared-skill installs; native adapters own command discovery now.
-rm -rf "$legacy_skills/autoexp" "$legacy_skills/autoexp-review"
+# The plugin owns $autoexp; keep only the separate top-level review command.
+rm -rf "$codex_skills/autoexp"
 
 if [[ "$uninstall" == 1 ]]; then
   command -v codex >/dev/null && codex plugin remove autoexp@autoexp >/dev/null 2>&1 || true
@@ -33,6 +33,7 @@ if [[ "$uninstall" == 1 ]]; then
   command -v pi >/dev/null && PI_CODING_AGENT_DIR="$pi_home" pi remove "$pi_home/autoexp-extension" >/dev/null 2>&1 || true
   rm -rf \
     "$codex_home/autoexp-marketplace" \
+    "$codex_skills/autoexp-review" \
     "$claude_home/autoexp-marketplace" \
     "$claude_home/skills/autoexp" \
     "$claude_home/skills/autoexp-review" \
@@ -73,6 +74,7 @@ if [[ -z "$source_dir" ]]; then
   source_dir="$tmp/source"
   files=(
     .agents/plugins/marketplace.json
+    .agents/skills/autoexp-review/SKILL.md
     .claude-plugin/marketplace.json
     adapters/claude/.claude-plugin/plugin.json
     adapters/claude/hooks/hooks.json
@@ -95,6 +97,10 @@ if [[ -z "$source_dir" ]]; then
     curl -fsSL "$raw/$file" -o "$source_dir/$file"
   done
 fi
+
+mkdir -p "$codex_skills/autoexp-review"
+install -m 0644 "$source_dir/.agents/skills/autoexp-review/SKILL.md" \
+  "$codex_skills/autoexp-review/SKILL.md"
 
 if [[ "$skip_runtime" != 1 ]]; then
   if [[ "$source_dir" == "$tmp/source" ]]; then
