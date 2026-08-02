@@ -1,0 +1,51 @@
+# Autoexp
+
+> Local-first experimentation infrastructure for coding agents. Autoexp preserves source, inputs, logs, outputs, reports, metrics, and run lineage, then lets a human review evidence and send structured feedback back to the waiting agent.
+
+## Website
+
+- Home: https://autoexp.dev/
+- Repository: https://github.com/shreyashkar-ml/autoexp
+- Installer: https://autoexp.dev/install.sh
+- Agent-readable instructions: https://autoexp.dev/llms.txt
+
+## Install
+
+Run this in the repository where the agent works:
+
+```sh
+curl -fsSL https://autoexp.dev/install.sh | bash
+```
+
+The installer detects and configures supported hosts. Restart the host agent after installation.
+
+## Agent workflows
+
+### What Autoexp does
+
+Autoexp is a local-first tool for agent-led experimentation. It gives an agent a reproducible experiment boundary, records the exact source and inputs used for each run, preserves logs, outputs, metrics, reports, and lineage, and provides a browser surface for human review. The repository remains the editable source of truth; Autoexp supplies the execution ledger and feedback loop.
+
+### Start or continue work: `/autoexp <objective>`
+
+Use `/autoexp` when the user asks you to test, compare, measure, optimize, or research something in the current repository. Include a concrete objective, for example `/autoexp compare two parsing approaches on the existing benchmark`. The command binds Autoexp to the current agent session and returns the workflow and command prefix to use. Follow that workflow, run focused attempts through Autoexp, and base conclusions on the preserved run evidence.
+
+Use `/autoexp` again when continuing an existing experiment or starting another objective in the same repository. Do not use it for ordinary edits that do not need reproducible runs, metrics, artifacts, or experiment history.
+
+### Review and redirect: `/autoexp-review`
+
+Use `/autoexp-review` after an experiment has produced evidence and a human should inspect results, source, diffs, logs, reports, artifacts, or metrics. It opens a local browser review and pauses the agent. Wait for the review result; treat submitted notes as the user's next instruction in the active experiment and continue from that feedback. If the user explicitly asks to review a particular experiment, pass its experiment ID as `/autoexp-review <experiment-id>`.
+
+Do not launch a second review while one is already waiting, and do not invoke `/autoexp-review` for routine progress updates when no experiment evidence needs human inspection.
+
+## Supported agents
+
+- Codex: run the installer with `codex` installed. It creates the local marketplace at `$CODEX_HOME/autoexp-marketplace`, adds it with `codex plugin marketplace add`, and installs the plugin with `codex plugin add autoexp@autoexp`. If the installer reports compatibility instead of integration, run `codex plugin add autoexp@autoexp` after the installer.
+- Claude Code: run the installer with `claude` installed. It creates the local marketplace at `$CLAUDE_CONFIG_DIR/autoexp-marketplace` (default `~/.claude/autoexp-marketplace`), adds it with `claude plugin marketplace add`, and installs it with `claude plugin install autoexp@autoexp`.
+- OpenCode: run the installer with `opencode` installed. It copies the native plugin to `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/autoexp.ts`, its support files to `plugins/autoexp-native/`, and the `/autoexp` and `/autoexp-review` command files to `commands/`. Restart OpenCode after installation.
+- Pi: run the installer with `pi` installed. It copies the native extension to `${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/autoexp-extension` and registers it with `PI_CODING_AGENT_DIR=... pi install ...`. Restart Pi after installation.
+
+The installer only configures agents that are present on the machine. To configure one host at a time, install the runtime first with `AUTOEXP_SKIP_RUNTIME=1 AUTOEXP_SOURCE_DIR=/path/to/autoexp ./install.sh`; the host-specific files and commands above are the locations it manages.
+
+## Repository guidance
+
+Autoexp is local-first: the repository remains the editable source of truth. Use the existing code, data, evaluators, and constraints; keep immutable evidence tied to exact source and inputs; report the run IDs supporting conclusions.
