@@ -33,7 +33,7 @@ Explore the workflow and installation options at [autoexp.dev](https://autoexp.d
 
 ## Install and connect your agent
 
-Linux and macOS (requires Git, `curl`, and `uv`):
+macOS, Linux, and WSL (requires Git, `curl`, and `uv`):
 
 ```bash
 curl -fsSL https://autoexp.dev/install.sh | bash
