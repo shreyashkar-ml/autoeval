@@ -23,6 +23,7 @@ from autoexp.runs import copy_run_source, restore_run_state
 from autoexp.reports import list_documents, mark_milestone, read_project_report
 from autoexp.review import create_review_session
 from autoexp.runtime import list_runs, run_diff, run_report, run_source
+import autoexp.server as server_module
 from autoexp.server import AutoexpHTTPServer, AutoexpHandler, view
 from autoexp.snapshots import (
     _hash_declared_source, capture_workspace, materialize_snapshot,
@@ -453,6 +454,77 @@ def test_failed_import_cleans_up_and_can_retry(tmp_path, monkeypatch):
 def test_view_rejects_non_loopback_bind():
     with pytest.raises(ValueError, match="loopback"):
         view(host="0.0.0.0", open_browser=False)
+
+
+def test_server_health_identifies_its_autoexp_data_root(tmp_path, monkeypatch):
+    monkeypatch.setenv("AUTOEXP_HOME", str(tmp_path / "home"))
+    server = AutoexpHTTPServer(("127.0.0.1", 0), AutoexpHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        with urlopen(f"{base}/api/health", timeout=3) as response:
+            health = json.load(response)
+        assert health["data_root"] == str((tmp_path / "home").resolve())
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_ensure_server_does_not_reuse_a_server_for_another_data_root(tmp_path, monkeypatch):
+    monkeypatch.setenv("AUTOEXP_HOME", str(tmp_path / "home"))
+    expected_root = str((tmp_path / "home").resolve())
+    health_checks = []
+    launches = []
+
+    def healthy(host, port, expected_data_root=None):
+        health_checks.append((host, port, expected_data_root))
+        return port == 43210 and str(expected_data_root) == expected_root
+
+    monkeypatch.setattr(server_module, "_healthy", healthy)
+    monkeypatch.setattr(server_module, "_port_available", lambda *_: False)
+    monkeypatch.setattr(server_module, "_free_port", lambda *_: 43210)
+    monkeypatch.setattr(
+        server_module.subprocess,
+        "Popen",
+        lambda args, **kwargs: launches.append((args, kwargs)) or SimpleNamespace(poll=lambda: None),
+    )
+
+    url, process = server_module.ensure_server(port=8765)
+
+    assert url == "http://127.0.0.1:43210"
+    assert process is not None
+    assert health_checks[0][:2] == ("127.0.0.1", 8765)
+    assert str(health_checks[0][2]) == expected_root
+    assert launches[0][0][launches[0][0].index("--port") + 1] == "43210"
+
+
+def test_view_uses_a_fresh_port_for_another_data_root(tmp_path, monkeypatch):
+    monkeypatch.setenv("AUTOEXP_HOME", str(tmp_path / "home"))
+    addresses = []
+
+    monkeypatch.setattr(server_module, "_healthy", lambda *_: False)
+    monkeypatch.setattr(server_module, "_port_available", lambda *_: False)
+    monkeypatch.setattr(server_module, "_free_port", lambda *_: 43211)
+
+    class FakeServer:
+        server_port = 43211
+
+        def __init__(self, address, _handler, _allow_origins):
+            addresses.append(address)
+
+        def serve_forever(self):
+            raise KeyboardInterrupt
+
+        def server_close(self):
+            pass
+
+    monkeypatch.setattr(server_module, "AutoexpHTTPServer", FakeServer)
+
+    view(port=8765, open_browser=False)
+
+    assert addresses == [("127.0.0.1", 43211)]
 
 
 def test_research_restore_only_reverts_agent_subject(tmp_path, monkeypatch):

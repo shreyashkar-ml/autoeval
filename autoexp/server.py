@@ -4,6 +4,7 @@ import ipaddress
 import json
 import mimetypes
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -24,7 +25,7 @@ from .snapshots import materialize_snapshot
 from .store import db
 from .workspace import (
     experiment_entry, file_hash, manifest_files, project_mode, registry,
-    resolve_root, safe_repository_path,
+    resolve_root, safe_repository_path, user_data_dir,
 )
 
 
@@ -149,7 +150,11 @@ class AutoexpHandler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
         path = parsed.path
         if path == "/api/health":
-            return self._json({"ok": True, "version": __version__})
+            return self._json({
+                "ok": True,
+                "version": __version__,
+                "data_root": str(user_data_dir().resolve()),
+            })
         if path == "/api/registry":
             stats = _run_stats()
             repos = registry()
@@ -387,26 +392,58 @@ def _server_url(host, port):
     return f"http://{'[' + host + ']' if ':' in host else host}:{port}"
 
 
-def _healthy(host, port):
+def _healthy(host, port, expected_data_root=None):
     try:
         with urlopen(f"{_server_url(host, port)}/api/health", timeout=0.5) as response:
             data = json.load(response)
-            return data.get("ok") is True and data.get("version") == __version__
+            return (
+                data.get("ok") is True
+                and data.get("version") == __version__
+                and (
+                    expected_data_root is None
+                    or data.get("data_root") == str(expected_data_root)
+                )
+            )
     except Exception:
         return False
 
 
+def _port_available(host, port):
+    if not port:
+        return False
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    try:
+        with socket.socket(family, socket.SOCK_STREAM) as probe:
+            probe.bind((host, port))
+        return True
+    except OSError:
+        return False
+
+
+def _free_port(host):
+    family = socket.AF_INET6 if ":" in host else socket.AF_INET
+    with socket.socket(family, socket.SOCK_STREAM) as probe:
+        probe.bind((host, 0))
+        return probe.getsockname()[1]
+
+
+def _launch_port(host, requested):
+    return requested if _port_available(host, requested) else _free_port(host)
+
+
 def ensure_server(host="127.0.0.1", port=8765):
     _require_loopback_host(host)
-    if _healthy(host, port):
+    expected_data_root = user_data_dir().resolve()
+    if _healthy(host, port, expected_data_root):
         return _server_url(host, port), None
+    launch_port = _launch_port(host, port)
     proc = subprocess.Popen(
-        [sys.executable, "-m", "autoexp", "view", "--host", host, "--port", str(port), "--no-open"],
+        [sys.executable, "-m", "autoexp", "view", "--host", host, "--port", str(launch_port), "--no-open"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
     )
     for _ in range(40):
-        if _healthy(host, port):
-            return _server_url(host, port), proc
+        if _healthy(host, launch_port, expected_data_root):
+            return _server_url(host, launch_port), proc
         if proc.poll() is not None:
             break
         time.sleep(0.1)
@@ -415,7 +452,8 @@ def ensure_server(host="127.0.0.1", port=8765):
 
 def view(host="127.0.0.1", port=8765, allow_origins=None, experiment=None, review_token=None, open_browser=True):
     _require_loopback_host(host)
-    if _healthy(host, port):
+    expected_data_root = user_data_dir().resolve()
+    if _healthy(host, port, expected_data_root):
         base = _server_url(host, port)
         query = []
         if experiment:
@@ -427,7 +465,9 @@ def view(host="127.0.0.1", port=8765, allow_origins=None, experiment=None, revie
             webbrowser.open(url)
         print(f"[autoexp] using {url}")
         return
-    server = AutoexpHTTPServer((host, port), AutoexpHandler, allow_origins)
+    server = AutoexpHTTPServer(
+        (host, _launch_port(host, port)), AutoexpHandler, allow_origins
+    )
     query = []
     if experiment:
         query.append(f"experiment={quote(str(experiment))}")
