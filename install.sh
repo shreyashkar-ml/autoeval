@@ -74,12 +74,12 @@ if [[ -z "$source_dir" ]]; then
   source_dir="$tmp/source"
   files=(
     .agents/plugins/marketplace.json
-    .agents/skills/autoexp-review/SKILL.md
+    adapters/codex-skills/autoexp-review/SKILL.md
     .claude-plugin/marketplace.json
     adapters/claude/.claude-plugin/plugin.json
     adapters/claude/hooks/hooks.json
-    adapters/claude/skills/autoexp/SKILL.md
-    adapters/claude/skills/autoexp-review/SKILL.md
+    adapters/claude-skills/autoexp/SKILL.md
+    adapters/claude-skills/autoexp-review/SKILL.md
     adapters/codex/.codex-plugin/plugin.json
     adapters/codex/hooks/hooks.json
     adapters/opencode-plugin/package.json
@@ -99,7 +99,7 @@ if [[ -z "$source_dir" ]]; then
 fi
 
 mkdir -p "$codex_skills/autoexp-review"
-install -m 0644 "$source_dir/.agents/skills/autoexp-review/SKILL.md" \
+install -m 0644 "$source_dir/adapters/codex-skills/autoexp-review/SKILL.md" \
   "$codex_skills/autoexp-review/SKILL.md"
 
 if [[ "$skip_runtime" != 1 ]]; then
@@ -143,15 +143,23 @@ fi
 
 if command -v claude >/dev/null; then
   claude_marketplace="$claude_home/autoexp-marketplace"
-  mkdir -p "$claude_marketplace/.claude-plugin" "$claude_marketplace/adapters/claude"
+  mkdir -p \
+    "$claude_marketplace/.claude-plugin" \
+    "$claude_marketplace/adapters/claude/.claude-plugin" \
+    "$claude_marketplace/adapters/claude/hooks"
   install -m 0644 "$source_dir/.claude-plugin/marketplace.json" \
     "$claude_marketplace/.claude-plugin/marketplace.json"
-  cp -R "$source_dir/adapters/claude/." "$claude_marketplace/adapters/claude/"
+  install -m 0644 "$source_dir/adapters/claude/.claude-plugin/plugin.json" \
+    "$claude_marketplace/adapters/claude/.claude-plugin/plugin.json"
+  install -m 0644 "$source_dir/adapters/claude/hooks/hooks.json" \
+    "$claude_marketplace/adapters/claude/hooks/hooks.json"
   mkdir -p "$claude_home/skills/autoexp" "$claude_home/skills/autoexp-review"
-  install -m 0644 "$source_dir/adapters/claude/skills/autoexp/SKILL.md" \
+  install -m 0644 "$source_dir/adapters/claude-skills/autoexp/SKILL.md" \
     "$claude_home/skills/autoexp/SKILL.md"
-  install -m 0644 "$source_dir/adapters/claude/skills/autoexp-review/SKILL.md" \
+  install -m 0644 "$source_dir/adapters/claude-skills/autoexp-review/SKILL.md" \
     "$claude_home/skills/autoexp-review/SKILL.md"
+  claude plugin uninstall autoexp@autoexp >/dev/null 2>&1 || true
+  claude plugin marketplace remove autoexp >/dev/null 2>&1 || true
   claude plugin marketplace add "$claude_marketplace" >/dev/null 2>&1 || true
   claude plugin install autoexp@autoexp >/dev/null 2>&1 || true
   statuses+=("Claude Code: Experimental native adapter (/autoexp, /autoexp-review); reload required")

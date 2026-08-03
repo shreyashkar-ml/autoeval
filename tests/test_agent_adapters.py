@@ -30,15 +30,16 @@ def test_native_adapter_contract(agent):
         assert "skills" not in manifest
         assert not (root / "skills").exists()
         json.loads((root / "hooks/hooks.json").read_text())
-        assert (ROOT / ".agents/skills/autoexp-review/SKILL.md").is_file()
+        assert (ROOT / "adapters/codex-skills/autoexp-review/SKILL.md").is_file()
         return
 
     if agent == "claude":
         root = ROOT / "adapters/claude"
         assert json.loads((root / ".claude-plugin/plugin.json").read_text())["name"] == "autoexp"
         json.loads((root / "hooks/hooks.json").read_text())
-        assert (root / "skills/autoexp/SKILL.md").is_file()
-        assert (root / "skills/autoexp-review/SKILL.md").is_file()
+        assert not (root / "skills").exists()
+        assert (ROOT / "adapters/claude-skills/autoexp/SKILL.md").is_file()
+        assert (ROOT / "adapters/claude-skills/autoexp-review/SKILL.md").is_file()
         return
 
     host = "opencode-plugin" if agent == "opencode" else "pi-extension"
@@ -51,8 +52,8 @@ def test_native_adapter_contract(agent):
 
 
 def test_review_commands_use_host_native_launch_paths():
-    codex = (ROOT / ".agents/skills/autoexp-review/SKILL.md").read_text()
-    claude = (ROOT / "adapters/claude/skills/autoexp-review/SKILL.md").read_text()
+    codex = (ROOT / "adapters/codex-skills/autoexp-review/SKILL.md").read_text()
+    claude = (ROOT / "adapters/claude-skills/autoexp-review/SKILL.md").read_text()
     opencode = (ROOT / "adapters/opencode-plugin/index.ts").read_text()
     pi = (ROOT / "adapters/pi-extension/index.ts").read_text()
 
@@ -179,8 +180,34 @@ def test_source_installer_exposes_only_review_as_a_shared_codex_skill(
     )
     assert not (legacy / "autoexp").exists()
     assert (legacy / "autoexp-review/SKILL.md").read_text() == (
-        ROOT / ".agents/skills/autoexp-review/SKILL.md"
+        ROOT / "adapters/codex-skills/autoexp-review/SKILL.md"
     ).read_text()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="install.sh requires a POSIX shell")
+def test_source_installer_keeps_claude_skills_out_of_plugin_namespace(tmp_path):
+    home = tmp_path / "home"
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    claude = bin_dir / "claude"
+    claude.write_text("#!/bin/sh\nexit 0\n")
+    claude.chmod(0o755)
+    env = {
+        **os.environ,
+        "HOME": str(home),
+        "PATH": f"{bin_dir}:/usr/bin:/bin",
+        "AUTOEXP_SKIP_RUNTIME": "1",
+        "AUTOEXP_SOURCE_DIR": str(ROOT),
+    }
+
+    subprocess.run(["bash", str(ROOT / "install.sh")], env=env, check=True)
+
+    plugin = home / ".claude/autoexp-marketplace/adapters/claude"
+    assert (plugin / ".claude-plugin/plugin.json").is_file()
+    assert (plugin / "hooks/hooks.json").is_file()
+    assert not (plugin / "skills").exists()
+    assert (home / ".claude/skills/autoexp/SKILL.md").is_file()
+    assert (home / ".claude/skills/autoexp-review/SKILL.md").is_file()
 
 
 @pytest.mark.skipif(os.name == "nt", reason="install.sh requires a POSIX shell")

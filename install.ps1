@@ -107,12 +107,12 @@ try {
         $sourceDir = Join-Path $tempRoot "source"
         $files = @(
             ".agents/plugins/marketplace.json",
-            ".agents/skills/autoexp-review/SKILL.md",
+            "adapters/codex-skills/autoexp-review/SKILL.md",
             ".claude-plugin/marketplace.json",
             "adapters/claude/.claude-plugin/plugin.json",
             "adapters/claude/hooks/hooks.json",
-            "adapters/claude/skills/autoexp/SKILL.md",
-            "adapters/claude/skills/autoexp-review/SKILL.md",
+            "adapters/claude-skills/autoexp/SKILL.md",
+            "adapters/claude-skills/autoexp-review/SKILL.md",
             "adapters/codex/.codex-plugin/plugin.json",
             "adapters/codex/hooks/hooks.json",
             "adapters/opencode-plugin/package.json",
@@ -134,7 +134,7 @@ try {
 
     $reviewSkill = Join-Path $codexSkills "autoexp-review"
     New-Item -ItemType Directory -Force -Path $reviewSkill | Out-Null
-    Copy-Item -LiteralPath (Join-Path $sourceDir ".agents\skills\autoexp-review\SKILL.md") -Destination (Join-Path $reviewSkill "SKILL.md") -Force
+    Copy-Item -LiteralPath (Join-Path $sourceDir "adapters\codex-skills\autoexp-review\SKILL.md") -Destination (Join-Path $reviewSkill "SKILL.md") -Force
 
     if (-not $skipRuntime) {
         if ($sourceDir -eq (Join-Path $tempRoot "source")) {
@@ -170,9 +170,14 @@ try {
         Remove-Path $claudeMarketplace
         New-Item -ItemType Directory -Force -Path (Join-Path $claudeMarketplace ".claude-plugin") | Out-Null
         Copy-Item -LiteralPath (Join-Path $sourceDir ".claude-plugin\marketplace.json") -Destination (Join-Path $claudeMarketplace ".claude-plugin\marketplace.json") -Force
-        Copy-Tree (Join-Path $sourceDir "adapters\claude") (Join-Path $claudeMarketplace "adapters\claude")
-        Copy-Tree (Join-Path $sourceDir "adapters\claude\skills\autoexp") (Join-Path $claudeHome "skills\autoexp")
-        Copy-Tree (Join-Path $sourceDir "adapters\claude\skills\autoexp-review") (Join-Path $claudeHome "skills\autoexp-review")
+        $claudeAdapter = Join-Path $claudeMarketplace "adapters\claude"
+        New-Item -ItemType Directory -Force -Path (Join-Path $claudeAdapter ".claude-plugin"), (Join-Path $claudeAdapter "hooks") | Out-Null
+        Copy-Item -LiteralPath (Join-Path $sourceDir "adapters\claude\.claude-plugin\plugin.json") -Destination (Join-Path $claudeAdapter ".claude-plugin\plugin.json") -Force
+        Copy-Item -LiteralPath (Join-Path $sourceDir "adapters\claude\hooks\hooks.json") -Destination (Join-Path $claudeAdapter "hooks\hooks.json") -Force
+        Copy-Tree (Join-Path $sourceDir "adapters\claude-skills\autoexp") (Join-Path $claudeHome "skills\autoexp")
+        Copy-Tree (Join-Path $sourceDir "adapters\claude-skills\autoexp-review") (Join-Path $claudeHome "skills\autoexp-review")
+        Run-Quiet "claude" @("plugin", "uninstall", "autoexp@autoexp") | Out-Null
+        Run-Quiet "claude" @("plugin", "marketplace", "remove", "autoexp") | Out-Null
         Run-Quiet "claude" @("plugin", "marketplace", "add", $claudeMarketplace) | Out-Null
         Run-Quiet "claude" @("plugin", "install", "autoexp@autoexp") | Out-Null
         $statuses.Add("Claude Code: Experimental native adapter (/autoexp, /autoexp-review); reload required")
