@@ -50,17 +50,18 @@ jobs:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v6
       - if: runner.os != 'Windows'
-        name: Install from source with the POSIX installer
+        name: Install the pull-request revision with the POSIX installer
         shell: bash
         run: |
-          AUTOEXP_SOURCE_DIR="$PWD" bash install.sh
+          export AUTOEXP_REF="${{ github.event.pull_request.head.sha || github.sha }}"
+          curl -fsSL "https://raw.githubusercontent.com/shreyashkar-ml/autoexp/$AUTOEXP_REF/install.sh" | bash
           autoexp --version
       - if: runner.os == 'Windows'
-        name: Install from source with PowerShell
+        name: Install the pull-request revision with PowerShell
         shell: pwsh
         run: |
-          $env:AUTOEXP_SOURCE_DIR = (Get-Location).Path
-          ./install.ps1
+          $env:AUTOEXP_REF = "${{ github.event.pull_request.head.sha || github.sha }}"
+          irm "https://raw.githubusercontent.com/shreyashkar-ml/autoexp/$env:AUTOEXP_REF/install.ps1" | iex
           autoexp --version
 
   agent-adapters:
