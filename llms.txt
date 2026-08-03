@@ -12,7 +12,7 @@
 
 ## Install
 
-On Linux or macOS, run this in the repository where the agent works:
+On macOS, Linux, or WSL, run this in the repository where the agent works:
 
 ```sh
 curl -fsSL https://autoexp.dev/install.sh | bash
