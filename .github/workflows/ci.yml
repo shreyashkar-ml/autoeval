@@ -28,11 +28,9 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - uses: astral-sh/setup-uv@v6
       - run: uv run --extra test pytest -q
-      - if: runner.os == 'Linux'
-        run: npm ci
+      - run: npm ci
         working-directory: frontend
-      - if: runner.os == 'Linux'
-        run: npm run build
+      - run: npm run build
         working-directory: frontend
       - run: npm test
         working-directory: adapters/opencode-plugin
