@@ -56,8 +56,8 @@
         </div>
         <div class="command">
           <span>$</span>
-          <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>
-          <button class="copy" type="button" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
+          <code id="install-command">curl -fsSL https://autoexp.dev/install.sh | bash</code>
+          <button class="copy" id="install-copy" type="button" data-copy="curl -fsSL https://autoexp.dev/install.sh | bash">copy</button>
         </div>
         <div class="agent-panel" aria-live="polite">
           <div>
@@ -74,7 +74,7 @@ codex plugin add autoexp@autoexp</pre>
     <section class="agent-instructions" aria-label="Instructions for AI agents">
       <h2>Instructions for AI agents</h2>
       <p>Autoexp is local-first experimentation infrastructure for coding agents. It creates reproducible experiment boundaries, records exact source and inputs, preserves logs, outputs, metrics, reports, and lineage, and provides a browser review surface for human feedback.</p>
-      <p>Install it with <code>curl -fsSL https://autoexp.dev/install.sh | bash</code>, then restart the host agent.</p>
+      <p>Install it with <code>curl -fsSL https://autoexp.dev/install.sh | bash</code> on Linux/macOS or <code>irm https://autoexp.dev/install.ps1 | iex</code> in Windows PowerShell, then restart the host agent.</p>
       <p>Use <code>/autoexp &lt;objective&gt;</code> when the user asks you to test, compare, measure, optimize, or research something in the current repository. Follow the returned workflow, run focused attempts, and base conclusions on preserved evidence. Do not use it for ordinary edits that do not need reproducible runs or experiment history.</p>
       <p>Use <code>/autoexp-review</code> after evidence exists and a human should inspect source, diffs, logs, reports, artifacts, or metrics. It pauses the agent while the review is open; treat submitted notes as the user's next instruction. Do not start a second review while one is waiting.</p>
       <ul>
@@ -222,9 +222,16 @@ codex plugin add autoexp@autoexp</pre>
     const note = document.querySelector("#agent-note");
     const command = document.querySelector("#agent-command");
     const agentCopy = document.querySelector("#agent-copy");
+    const installCommand = document.querySelector("#install-command");
+    const installCopy = document.querySelector("#install-copy");
     const githubStars = document.querySelector("#github-stars");
     const lightbox = document.querySelector(".lightbox");
     const lightboxImage = lightbox.querySelector("img");
+    if (/Windows/i.test(navigator.userAgent)) {
+      const windowsInstall = "irm https://autoexp.dev/install.ps1 | iex";
+      installCommand.textContent = windowsInstall;
+      installCopy.dataset.copy = windowsInstall;
+    }
     const workflows = {
       run: [
         ["State the objective", "Tell the agent what to test, compare, or optimize."],

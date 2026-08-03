@@ -1,6 +1,7 @@
 import hashlib
 import threading
 import json
+import os
 import shutil
 import sqlite3
 import subprocess
@@ -713,7 +714,7 @@ def test_downloads_stream_complete_artifact_and_log(tmp_path, monkeypatch):
         ) as response:
             assert response.read() == b"x" * output_size
         with urlopen(f"{base}/logs/stdout?download=1", timeout=30) as response:
-            assert response.read() == b"L" * 70000 + b"\n"
+            assert response.read() == b"L" * 70000 + os.linesep.encode()
     finally:
         server.shutdown()
         server.server_close()
@@ -784,8 +785,10 @@ def test_global_storage_is_private_by_default(tmp_path, monkeypatch):
 
     create_experiment("test private storage", root=repo, entrypoint="main.py")
 
-    assert home.stat().st_mode & 0o777 == 0o700
-    assert (home / "state.sqlite").stat().st_mode & 0o777 == 0o600
+    assert (home / "state.sqlite").is_file()
+    if os.name != "nt":
+        assert home.stat().st_mode & 0o777 == 0o700
+        assert (home / "state.sqlite").stat().st_mode & 0o777 == 0o600
 
 
 def test_docker_runner_hardens_container_without_secret_argv(tmp_path, monkeypatch):
