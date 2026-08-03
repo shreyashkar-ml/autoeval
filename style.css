@@ -132,6 +132,21 @@ h1 em { color: var(--accent); font-style: normal; }
 .agent-tab:active, .workflow-tab:active, .copy:active { transform: translateY(1px); }
 .agent-tab.active { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); }
 .agent-tab img { width: 17px; height: 17px; object-fit: contain; }
+.platform-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 8px; }
+.platform-tab {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font: 9px/1 var(--mono);
+  transition: color .16s ease, border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.platform-tab:hover { color: var(--ink); border-color: var(--line-strong); }
+.platform-tab:active { transform: translateY(1px); }
+.platform-tab.active { color: var(--terminal-accent); border-color: var(--line-strong); background: var(--panel); }
 .command {
   min-width: 0;
   display: grid;
