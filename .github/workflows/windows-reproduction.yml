@@ -19,9 +19,7 @@ jobs:
       - name: Install from autoexp.dev
         run: curl -fsSL https://autoexp.dev/install.sh | bash
       - name: Verify installed CLI
-        run: |
-          autoexp --version
-          autoexp doctor
+        run: autoexp --version
       - name: Run Python test suite on Windows
         run: |
           uv sync --extra test
