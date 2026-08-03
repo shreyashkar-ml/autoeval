@@ -42,9 +42,14 @@ $claudeHome = First-Value $env:CLAUDE_CONFIG_DIR (Join-Path $userHome ".claude")
 $configHome = First-Value $env:XDG_CONFIG_HOME (Join-Path $userHome ".config")
 $opencodeHome = Join-Path $configHome "opencode"
 $piHome = First-Value $env:PI_CODING_AGENT_DIR (Join-Path $userHome ".pi\agent")
-$codexSkills = First-Value $env:AUTOEXP_CODEX_SKILLS_DIR (Join-Path $userHome ".agents\skills")
+$codexSkills = First-Value $env:AUTOEXP_CODEX_SKILLS_DIR (Join-Path $codexHome "skills")
+$legacyCodexSkills = Join-Path $userHome ".agents\skills"
 
 Remove-Path (Join-Path $codexSkills "autoexp")
+if ($codexSkills -ne $legacyCodexSkills) {
+    Remove-Path (Join-Path $legacyCodexSkills "autoexp")
+    Remove-Path (Join-Path $legacyCodexSkills "autoexp-review")
+}
 
 if ($uninstall) {
     if (Has-Command "codex") {
@@ -64,6 +69,7 @@ if ($uninstall) {
     @(
         (Join-Path $codexHome "autoexp-marketplace"),
         (Join-Path $codexSkills "autoexp-review"),
+        (Join-Path $legacyCodexSkills "autoexp-review"),
         (Join-Path $claudeHome "autoexp-marketplace"),
         (Join-Path $claudeHome "skills\autoexp"),
         (Join-Path $claudeHome "skills\autoexp-review"),

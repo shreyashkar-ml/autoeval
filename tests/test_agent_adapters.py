@@ -179,7 +179,8 @@ def test_source_installer_exposes_only_review_as_a_shared_codex_skill(
         f"tool install --force --no-cache {ROOT}"
     )
     assert not (legacy / "autoexp").exists()
-    assert (legacy / "autoexp-review/SKILL.md").read_text() == (
+    assert not (legacy / "autoexp-review").exists()
+    assert (home / ".codex/skills/autoexp-review/SKILL.md").read_text() == (
         ROOT / "adapters/codex-skills/autoexp-review/SKILL.md"
     ).read_text()
 

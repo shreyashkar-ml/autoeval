@@ -20,10 +20,14 @@ codex_home="${CODEX_HOME:-$HOME/.codex}"
 claude_home="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 opencode_home="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 pi_home="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
-codex_skills="${AUTOEXP_CODEX_SKILLS_DIR:-$HOME/.agents/skills}"
+codex_skills="${AUTOEXP_CODEX_SKILLS_DIR:-$codex_home/skills}"
+legacy_codex_skills="$HOME/.agents/skills"
 
 # The plugin owns $autoexp; keep only the separate top-level review command.
 rm -rf "$codex_skills/autoexp"
+if [[ "$codex_skills" != "$legacy_codex_skills" ]]; then
+  rm -rf "$legacy_codex_skills/autoexp" "$legacy_codex_skills/autoexp-review"
+fi
 
 if [[ "$uninstall" == 1 ]]; then
   command -v codex >/dev/null && codex plugin remove autoexp@autoexp >/dev/null 2>&1 || true
@@ -34,6 +38,7 @@ if [[ "$uninstall" == 1 ]]; then
   rm -rf \
     "$codex_home/autoexp-marketplace" \
     "$codex_skills/autoexp-review" \
+    "$legacy_codex_skills/autoexp-review" \
     "$claude_home/autoexp-marketplace" \
     "$claude_home/skills/autoexp" \
     "$claude_home/skills/autoexp-review" \
