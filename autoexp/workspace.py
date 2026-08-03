@@ -393,7 +393,11 @@ def _remove_global_tree(path):
     if path.is_symlink() or not path.resolve(strict=False).is_relative_to(base):
         raise ValueError(f"refusing to remove unsafe global storage path: {path}")
     if path.is_dir():
-        shutil.rmtree(path)
+        def make_writable(function, target, _error):
+            Path(target).chmod(0o700)
+            function(target)
+
+        shutil.rmtree(path, onerror=make_writable)
     elif path.exists():
         raise ValueError(f"global storage path is not a directory: {path}")
 

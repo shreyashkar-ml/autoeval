@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import subprocess
 
+import pytest
+
 from autoexp.agent import context, execute, hook_event
 
 
@@ -15,33 +17,37 @@ def git_repo(path):
     return path
 
 
-def test_native_adapter_files_are_complete():
-    marketplace = json.loads(
-        (ROOT / ".agents/plugins/marketplace.json").read_text()
-    )
-    assert marketplace["plugins"][0]["source"]["path"] == "./adapters/codex"
+@pytest.mark.parametrize("agent", ["codex", "claude", "opencode", "pi"])
+def test_native_adapter_contract(agent):
+    if agent == "codex":
+        marketplace = json.loads(
+            (ROOT / ".agents/plugins/marketplace.json").read_text()
+        )
+        assert marketplace["plugins"][0]["source"]["path"] == "./adapters/codex"
+        root = ROOT / "adapters/codex"
+        manifest = json.loads((root / ".codex-plugin/plugin.json").read_text())
+        assert manifest["name"] == "autoexp"
+        assert "skills" not in manifest
+        assert not (root / "skills").exists()
+        json.loads((root / "hooks/hooks.json").read_text())
+        assert (ROOT / ".agents/skills/autoexp-review/SKILL.md").is_file()
+        return
 
-    codex = ROOT / "adapters/codex"
-    codex_manifest = json.loads((codex / ".codex-plugin/plugin.json").read_text())
-    assert codex_manifest["name"] == "autoexp"
-    assert "skills" not in codex_manifest
-    assert not (codex / "skills").exists()
-    json.loads((codex / "hooks/hooks.json").read_text())
-    assert (ROOT / ".agents/skills/autoexp-review/SKILL.md").is_file()
+    if agent == "claude":
+        root = ROOT / "adapters/claude"
+        assert json.loads((root / ".claude-plugin/plugin.json").read_text())["name"] == "autoexp"
+        json.loads((root / "hooks/hooks.json").read_text())
+        assert (root / "skills/autoexp/SKILL.md").is_file()
+        assert (root / "skills/autoexp-review/SKILL.md").is_file()
+        return
 
-    claude = ROOT / "adapters/claude"
-    assert json.loads((claude / ".claude-plugin/plugin.json").read_text())["name"] == "autoexp"
-    json.loads((claude / "hooks/hooks.json").read_text())
-    assert (claude / "skills/autoexp/SKILL.md").is_file()
-    assert (claude / "skills/autoexp-review/SKILL.md").is_file()
-
-    for host in ("opencode-plugin", "pi-extension"):
-        root = ROOT / "adapters" / host
-        package = json.loads((root / "package.json").read_text())
-        entrypoint = package.get("main") or package["pi"]["extensions"][0]
-        assert (root / entrypoint).is_file()
-        assert (root / "bridge.ts").is_file()
-        assert (root / "index.test.ts").is_file()
+    host = "opencode-plugin" if agent == "opencode" else "pi-extension"
+    root = ROOT / "adapters" / host
+    package = json.loads((root / "package.json").read_text())
+    entrypoint = package.get("main") or package["pi"]["extensions"][0]
+    assert (root / entrypoint).is_file()
+    assert (root / "bridge.ts").is_file()
+    assert (root / "index.test.ts").is_file()
 
 
 def test_review_commands_use_host_native_launch_paths():
@@ -141,6 +147,7 @@ def test_codex_hook_injects_experiment_workflow(tmp_path, monkeypatch):
     assert "autoexp agent exec --binding-id" in context_text
 
 
+@pytest.mark.skipif(os.name == "nt", reason="install.sh requires a POSIX shell")
 def test_source_installer_exposes_only_review_as_a_shared_codex_skill(
     tmp_path,
 ):
@@ -176,6 +183,7 @@ def test_source_installer_exposes_only_review_as_a_shared_codex_skill(
     ).read_text()
 
 
+@pytest.mark.skipif(os.name == "nt", reason="install.sh requires a POSIX shell")
 def test_remote_installer_fetches_one_resolved_commit(tmp_path):
     home = tmp_path / "home"
     bin_dir = tmp_path / "bin"

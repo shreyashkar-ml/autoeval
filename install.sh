@@ -59,7 +59,7 @@ trap 'rm -rf "$tmp"' EXIT
 
 if [[ -z "$source_dir" ]]; then
   if [[ "$ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
-    ref="${ref,,}"
+    ref="$(printf '%s' "$ref" | tr '[:upper:]' '[:lower:]')"
   else
     ref="$(
       git ls-remote "${repo}.git" "$ref" "refs/heads/$ref" "refs/tags/$ref^{}" "refs/tags/$ref" |

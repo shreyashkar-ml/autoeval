@@ -6,18 +6,25 @@
 
 - Home: https://autoexp.dev/
 - Repository: https://github.com/shreyashkar-ml/autoexp
-- Installer: https://autoexp.dev/install.sh
+- POSIX installer: https://autoexp.dev/install.sh
+- Windows installer: https://autoexp.dev/install.ps1
 - Agent-readable instructions: https://autoexp.dev/llms.txt
 
 ## Install
 
-Run this in the repository where the agent works:
+On macOS, Linux, or WSL, run this in the repository where the agent works:
 
 ```sh
 curl -fsSL https://autoexp.dev/install.sh | bash
 ```
 
-The installer detects and configures supported hosts. Restart the host agent after installation.
+On Windows, run this in PowerShell:
+
+```powershell
+irm https://autoexp.dev/install.ps1 | iex
+```
+
+Git and uv are required. The installer detects and configures supported hosts. Restart the host agent after installation.
 
 ## Agent workflows
 
@@ -44,7 +51,7 @@ Do not launch a second review while one is already waiting, and do not invoke `/
 - OpenCode: run the installer with `opencode` installed. It copies the native plugin to `${XDG_CONFIG_HOME:-$HOME/.config}/opencode/plugins/autoexp.ts`, its support files to `plugins/autoexp-native/`, and the `/autoexp` and `/autoexp-review` command files to `commands/`. Restart OpenCode after installation.
 - Pi: run the installer with `pi` installed. It copies the native extension to `${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/autoexp-extension` and registers it with `PI_CODING_AGENT_DIR=... pi install ...`. Restart Pi after installation.
 
-The installer only configures agents that are present on the machine. To configure one host at a time, install the runtime first with `AUTOEXP_SKIP_RUNTIME=1 AUTOEXP_SOURCE_DIR=/path/to/autoexp ./install.sh`; the host-specific files and commands above are the locations it manages.
+The installer only configures agents that are present on the machine. To configure one host at a time, point `AUTOEXP_SOURCE_DIR` at a checkout and set `AUTOEXP_SKIP_RUNTIME=1` before invoking `install.sh` or `install.ps1`; the host-specific files and commands above are the locations it manages.
 
 ## Repository guidance
 

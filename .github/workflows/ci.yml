@@ -10,7 +10,12 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: Runtime (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -21,7 +26,7 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: python -m pip install uv
+      - uses: astral-sh/setup-uv@v6
       - run: uv run --extra test pytest -q
       - run: npm ci
         working-directory: frontend
@@ -30,4 +35,54 @@ jobs:
       - run: npm test
         working-directory: adapters/opencode-plugin
       - run: npm test
+        working-directory: adapters/pi-extension
+
+  installer:
+    name: Installer (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v6
+      - if: runner.os != 'Windows'
+        name: Install the pull-request revision with the POSIX installer
+        shell: bash
+        run: |
+          export AUTOEXP_REF="${{ github.event.pull_request.head.sha || github.sha }}"
+          curl -fsSL "https://raw.githubusercontent.com/shreyashkar-ml/autoexp/$AUTOEXP_REF/install.sh" | bash
+          autoexp --version
+      - if: runner.os == 'Windows'
+        name: Install the pull-request revision with PowerShell
+        shell: pwsh
+        run: |
+          $env:AUTOEXP_REF = "${{ github.event.pull_request.head.sha || github.sha }}"
+          irm "https://raw.githubusercontent.com/shreyashkar-ml/autoexp/$env:AUTOEXP_REF/install.ps1" | iex
+          autoexp --version
+
+  agent-adapters:
+    name: Agent adapter (${{ matrix.agent }})
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [codex, claude, opencode, pi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - uses: astral-sh/setup-uv@v6
+      - name: Validate native adapter contract
+        run: uv run --extra test pytest -q tests/test_agent_adapters.py -k "native_adapter_contract and ${{ matrix.agent }}"
+      - if: matrix.agent == 'opencode'
+        run: npm test
+        working-directory: adapters/opencode-plugin
+      - if: matrix.agent == 'pi'
+        run: npm test
         working-directory: adapters/pi-extension

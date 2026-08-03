@@ -33,10 +33,16 @@ Explore the workflow and installation options at [autoexp.dev](https://autoexp.d
 
 ## Install and connect your agent
 
-Run:
+macOS, Linux, and WSL (requires Git, `curl`, and `uv`):
 
 ```bash
 curl -fsSL https://autoexp.dev/install.sh | bash
+```
+
+Windows PowerShell (requires Git and `uv`):
+
+```powershell
+irm https://autoexp.dev/install.ps1 | iex
 ```
 
 Restart your coding agent, open a repository, and start with an objective.
